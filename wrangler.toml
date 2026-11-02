@@ -8,13 +8,14 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# Add the two custom-domain path routes only AFTER staging tests:
-# [[routes]]
-# pattern = "akm.gunggu.my.id/lease-lab"
-# zone_name = "gunggu.my.id"
-# [[routes]]
-# pattern = "akm.gunggu.my.id/lease-lab/*"
-# zone_name = "gunggu.my.id"
+# Preserve the live textbook hostname while routing only LeaseLab paths.
+[[routes]]
+pattern = "akm.gunggu.my.id/lease-lab"
+zone_name = "gunggu.my.id"
+
+[[routes]]
+pattern = "akm.gunggu.my.id/lease-lab/*"
+zone_name = "gunggu.my.id"
 
 [[d1_databases]]
 binding = "DB"

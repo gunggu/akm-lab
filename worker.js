@@ -17,7 +17,7 @@ const presentValue=c=>c.rent*((1-(1+c.rate)**(-c.years))/c.rate)*(c.due==="begin
 const model=c=>{
  const pv=presentValue(c),firstInterest=(pv-(c.due==="beginning"?c.rent:0))*c.rate,fin=c.leaseType==="finance";
  const revenue=fin?Math.min(c.fv,pv):0,costSales=fin?c.cost:0;
- return {classification:c.leaseType,pv:round(pv),leaseLiabilityAtCommencement:round(pv-(c.due==="beginning"?c.rent:0)),rouAsset:round(pv),lessorNetInvestment:fin?round(pv):null,firstInterest:round(firstInterest),lessorRevenue:round(revenue),lessorCostOfSales:round(costSales),sellingProfit:round(revenue-costSales),operatingDepreciation:!fin?round(c.cost/c.life):null,operatingRentalIncome:!fin?c.rent:null,lesseeDepreciation:round(pv/c.years),timing:c.due};
+ return {classification:c.leaseType,pv:round(pv),leaseLiabilityAtCommencement:round(pv-(c.due==="beginning"?c.rent:0)),rouAsset:round(pv),lessorNetInvestment:fin?round(pv):null,firstInterest:round(firstInterest),lesseeInterest:round(firstInterest),lessorFinanceIncome:fin?round(firstInterest):0,lessorRevenue:round(revenue),lessorCostOfSales:round(costSales),sellingProfit:round(revenue-costSales),operatingDepreciation:!fin?round(c.cost/c.life):null,operatingRentalIncome:!fin?c.rent:null,lesseeDepreciation:round(pv/c.years),timing:c.due};
 };
 const result=(r,k)=>r?.results||[];
 const setting=async(env,key)=>((await env.DB.prepare("SELECT value FROM settings WHERE key=?").bind(key).first())||{}).value;

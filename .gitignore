@@ -1,0 +1,7 @@
+# Never publish student roster, per-student credentials or personal information
+*PRIVATE*.csv
+*PRIVATE*.sql
+student_access_codes*.csv
+roster_import*.sql
+.env
+.dev.vars

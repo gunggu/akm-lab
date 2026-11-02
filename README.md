@@ -22,8 +22,8 @@ Do not commit secrets, private SQL, roster names, NIUs or access codes. New inst
 ## Classroom operation
 
 1. Verify `/lease-lab/api/ready` reports `ready: true`; `/api/health` is liveness only. The equivalent workers.dev paths omit `/lease-lab`.
-2. Import the instructor's private hashed roster through the approved D1 workflow. Distribute original individual codes privately. Readiness does not assert that the roster is populated or validate those codes.
-3. Students check in with short NIU, individual code and a new personal PIN. Registration records attendance but does not allocate roles. Roles/cases in the legacy roster are not used for allocation.
+2. Import the instructor's private hashed roster through the approved D1 workflow. In the instructor console, load the dashboard and set one shared class enrollment code (6–64 characters), then announce it to attendees. Original individual roster codes are retained only for private PIN recovery; they do not need to be distributed for routine enrollment. Readiness does not assert that the roster is populated or a class code has been set.
+3. Students check in with short NIU, the shared class code and a new personal PIN. Registration records attendance but does not allocate roles. Roles/cases in the legacy roster are not used for allocation.
 4. Instructor loads the dashboard, reviews attendance, then finalizes the randomized allocation. Allocation is guarded against duplicate draws.
 5. Students refresh, meet an opposite-role representative in the same case and obtain bilateral confirmation. Multiple representatives can discuss the same transaction; these are not separate negotiated leases.
 6. Students prepare individual accounting. Drafts save after an input pause; students must verify the saved notice before leaving. A confirmed discussion is required for submission.
@@ -42,3 +42,9 @@ The exercise explicitly assumes straight-line depreciation, zero end-of-useful-l
 Existing submitted rows are preserved and locked; this patch cannot reconstruct any historical attempts previously overwritten. They are labelled legacy because their original measurement prompts differed. Current-version dashboard medians exclude legacy submissions; exports preserve their original data. A different saved draft is available for recovery instead of being silently overwritten.
 
 See `AUDIT.md` for implemented fixes and remaining validation limits.
+
+## Shared class enrollment (V2.2)
+
+The instructor sets or rotates the common class code in the authenticated console. Only a PBKDF2 hash is stored in the existing settings table; plaintext is never returned in reports or audit logs. No Cloudflare secret or schema migration is needed. Before the first code is set, new enrollment returns an explicit setup message. Existing students continue signing in with their personal PINs. The shared code only admits rostered, unclaimed NIUs while check-in is open or late.
+
+The class code must not be used as PIN recovery proof. Students who forget their PIN ask the instructor privately for their original individual recovery code from the private roster-code file. This exception avoids distributing individual codes to everyone at the beginning of a short class. Never publish that private recovery-code file.

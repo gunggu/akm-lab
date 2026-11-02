@@ -16,7 +16,7 @@ The existing `wrangler.toml` contains the real LeaseLab routes and D1 binding. F
 
 ## Functional and pedagogical rehearsal
 
-- Enroll invented students, verify duplicate/wrong-code rejection, login and waiting state. Confirm no real PINs appear in a URL when scripts fail to load.
+- Set a shared class code through the authenticated instructor console. Enroll several invented students with that same code; verify wrong/old-code, unknown-NIU and duplicate rejection, login and waiting state. Confirm class-code rotation does not change existing PINs and that the class code cannot reset a PIN. Confirm no real PINs appear in a URL when scripts fail to load.
 - Allocate 54 disposable attendees; confirm balanced roles and opposite-role availability in every active case. Repeat concurrent enrollment/allocation in the actual Cloudflare runtime. The local SQLite adapter is not a distributed concurrency test.
 - Test late check-in, assignment during `late`, closing late enrollment and protected reassignment/reset refusals.
 - Use both roles for all five cases; verify classification, recognized liability, ROU, commencement cash, manufacturer revenue/cost/profit and Year 1 entries against a human-reviewed key. Test Case 3 especially.
@@ -35,3 +35,5 @@ Test desktop 1366×900; portrait 390×844 and 360×800; landscape 844×390. Incl
 After approval and staging acceptance, merge the reviewed PR and verify the connected Worker deployment and build ID. Existing fully migrated V2 databases do not need a new schema migration for this patch. Do not run initialization, reset, attendance finalization or state changes just to deploy code.
 
 Check student/admin routes, readiness, module loading and the existing textbook route after release. On failure redeploy the previous LeaseLab code or disable only its two routes. No database deletion or rollback is required by this patch. Existing submissions are not rewritten, but historical attempts overwritten before this patch cannot be restored from the current database row.
+
+For V2.2, set the shared class enrollment code after deployment and before opening check-in to the class. This is an instructor action in the console; deployment does not invent or publish a code or change any existing PIN. Original individual codes are now recovery-only.

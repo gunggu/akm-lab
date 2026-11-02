@@ -106,10 +106,10 @@ export default {async fetch(request,env){
   url.pathname=url.pathname.slice(0,-1);
   return new Response(null,{status:308,headers:{location:url.toString()}});
  }
- if(path==="/api/health")return json({service:"lease-lab",version:"v2.1",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2.2",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
  if(path==="/api/ready"){
   const ready=await readiness(env);
-  return json({service:"lease-lab",version:"v2.1",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
+  return json({service:"lease-lab",version:"v2.2",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
  }
  if(path==="/"||path==="/admin"||["/worksheet.js","/app.js"].includes(path)){
   if(!["GET","HEAD"].includes(request.method))return fail("Reload before submitting. The application script may not have loaded.",405);
@@ -131,10 +131,13 @@ export default {async fetch(request,env){
  if(path==="/api/register"&&request.method==="POST"){
   if(!["open","late"].includes(await setting(env,"allocation")) )return fail("Check-in closed. Contact the instructor.",403);
   const niu=String(body.niu||"").trim(),pin=String(body.pin||""),code=String(body.classCode||"").trim();
-  if(!/^\d{4,12}$/.test(niu)||pin.length<8||pin.length>128||code.length<10)return fail("Enter your short NIU, individual code and PIN of 8–128 characters.");
-  const access=await digest(niu+"|"+code),hashed=await pinDigest(niu,pin,env.TOKEN_SECRET);
-  const inserted=await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) SELECT niu,name,?,'lessor',1 FROM roster WHERE niu=? AND access_hash=? AND claimed_at IS NULL AND EXISTS(SELECT 1 FROM settings WHERE key='allocation' AND value IN ('open','late')) AND NOT EXISTS(SELECT 1 FROM students WHERE students.niu=roster.niu)").bind(hashed,niu,access).run();
-  if(inserted.meta.changes!==1)return fail("Enrollment unavailable. Verify your code or sign in if already registered.",403);
+  if(!/^\d{4,12}$/.test(niu)||pin.length<8||pin.length>128||code.length<6||code.length>64)return fail("Enter your short NIU, instructor class code (6–64 characters) and personal PIN of 8–128 characters.");
+  const enrollmentHash=await setting(env,"enrollment_code_hash");
+  if(!enrollmentHash)return fail("The instructor must set the class enrollment code before check-in can begin.",503);
+  if(!await verifyPin("class-enrollment",code,env.TOKEN_SECRET,enrollmentHash))return fail("Incorrect class enrollment code. Ask your instructor for the current code.",403);
+  const hashed=await pinDigest(niu,pin,env.TOKEN_SECRET);
+  const inserted=await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) SELECT niu,name,?,'lessor',1 FROM roster WHERE niu=? AND claimed_at IS NULL AND EXISTS(SELECT 1 FROM settings WHERE key='allocation' AND value IN ('open','late')) AND NOT EXISTS(SELECT 1 FROM students WHERE students.niu=roster.niu)").bind(hashed,niu).run();
+  if(inserted.meta.changes!==1)return fail("Enrollment unavailable. Check your rostered short NIU or sign in if already registered.",403);
   await env.DB.prepare("UPDATE roster SET claimed_at=CURRENT_TIMESTAMP WHERE niu=?").bind(niu).run();
   await audit(env,niu,"check-in");
   return json({token:await token(env,niu)});
@@ -165,6 +168,16 @@ export default {async fetch(request,env){
  if(path.startsWith("/api/admin")){
   if(!authAdmin(request,env))return fail("Invalid instructor key.",403);
   const state=await setting(env,"allocation")||"open";
+  if(path==="/api/admin/enrollment-code"&&request.method==="POST"){
+   const code=String(body.code||"").trim();
+   if(code.length<6||code.length>64)return fail("Choose a class enrollment code of 6–64 characters.");
+   const hash=await pinDigest("class-enrollment",code,env.TOKEN_SECRET);
+   await env.DB.batch([
+    env.DB.prepare("INSERT INTO settings(key,value) VALUES('enrollment_code_hash',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(hash),
+    env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','set-class-enrollment-code','code updated; value not recorded')")
+   ]);
+   return json({ok:true,enrollmentCodeConfigured:true});
+  }
   if(path==="/api/admin/allocate"&&request.method==="POST"){
    if(state!=="open")return fail("Allocation already finalized.",409);
    const nius=result(await env.DB.prepare("SELECT niu FROM students ORDER BY niu").all()).map(x=>x.niu);
@@ -244,7 +257,7 @@ export default {async fetch(request,env){
     return {caseId:c.id,manufacturer:c.brand,expectedType:c.leaseType,expected:model(c),participants:members.length,interactions:report.interactions.filter(x=>x.case_id===c.id&&x.status==="confirmed").length,submissions:answers.length,legacySubmissions:answers.filter(x=>x.data.worksheetVersion!=="v2.1").length,lessorSubmissions:role("lessor").length,lesseeSubmissions:role("lessee").length,finance:role("lessor").filter(x=>x.data.classification==="Finance lease").length,operating:role("lessor").filter(x=>x.data.classification==="Operating lease").length,medianLessor:median(currentRole("lessor"),"pv"),medianLessee:median(currentRole("lessee"),"pv"),medianROU:median(currentRole("lessee"),"rouAsset")};
    });return json({discussions});
   }
-  return json({...report,submissionsOpen:(await setting(env,"submissions"))!=="closed"});
+  return json({...report,enrollmentCodeConfigured:!!await setting(env,"enrollment_code_hash"),submissionsOpen:(await setting(env,"submissions"))!=="closed"});
  }
  const user=await actor(request,env);if(!user)return fail("Please sign in.",401);
  const state=await setting(env,"allocation")||"open";

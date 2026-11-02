@@ -34,3 +34,9 @@ Existing tables, roster, accounts and submitted rows are preserved; no new datab
 - Obtain human sign-off on complete accounting journals/statements and the assessment rubric for all five cases.
 - Verify production deployment identity and database/roster readiness after an approved release. A successful local test is not evidence of live deployment.
 - Further negotiation, amortization-schedule authoring, revision history and separately stored post-comparison reflection are possible extensions, not features delivered by this patch. The selected policy is a locked independent submission followed by instructor-led debrief.
+
+## V2.2 classroom-flow update
+
+Enrollment now uses one instructor-supplied shared class code, configured in the protected console and stored as a PBKDF2 hash in existing settings. NIU roster membership, duplicate prevention, actual-attendance random allocation and personal PIN login remain intact. Individual codes are no longer required for enrollment; they are retained solely as private recovery proof so the shared code cannot be used to take over another student's PIN. The deployment leaves code selection to the instructor and does not change production settings or PINs automatically.
+
+The expanded local suite has 25 tests, including shared-code enrollment across multiple NIUs, authentication of the code-setting endpoint, code rotation, setup-required behavior, private storage/reporting and separation of enrollment from PIN recovery.

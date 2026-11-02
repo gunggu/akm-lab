@@ -22,6 +22,7 @@ class D1 {
   }
 }
 const ADMIN='disposable-instructor-key';
+const CLASS_CODE='test-shared-class-code';
 async function request(env,path,{data,token,admin=false,raw,method}={}) {
   const headers={};if(admin)headers['X-Admin-Key']=ADMIN;if(token)headers.Authorization='Bearer '+token;
   if(data!==undefined||raw!==undefined)headers['content-type']='application/json';
@@ -33,13 +34,14 @@ async function setup() {
   const env={DB:new D1(),TOKEN_SECRET:'test-only-token-secret',ADMIN_KEY:ADMIN,BUILD_ID:'test-build',ASSETS:{fetch:async url=>new Response(readFileSync(new URL('../public'+url.pathname,import.meta.url)),{headers:{'content-type':url.pathname.endsWith('.js')?'application/javascript':'text/html'}})}};
   env.DB.sqlite.exec(readFileSync(new URL('../schema.sql',import.meta.url),'utf8'));
   assert.equal((await request(env,'/api/admin/migrate',{admin:true,data:{}})).status,200);
+  assert.equal((await request(env,'/api/admin/enrollment-code',{admin:true,data:{code:CLASS_CODE}})).status,200);
   return env;
 }
-async function enroll(env,niu) {
+async function enroll(env,niu,classCode=CLASS_CODE) {
   const code='test-enrollment-'+niu;
   const hash=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(niu+'|'+code))).toString('hex');
   env.DB.sqlite.prepare('INSERT INTO roster(niu,name,access_hash,role,case_id) VALUES(?,?,?,\'lessor\',1)').run(niu,'Test '+niu,hash);
-  const result=await request(env,'/api/register',{data:{niu,pin:'test-only-pin',classCode:code}});
+  const result=await request(env,'/api/register',{data:{niu,pin:'test-only-pin',classCode}});
   assert.equal(result.status,200);return result.body.token;
 }
 async function pair() {
@@ -149,4 +151,33 @@ test('concurrent first submissions preserve exactly one accepted answer',async()
   assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
   assert.equal(p.env.DB.sqlite.prepare('SELECT COUNT(*) n FROM submissions').get().n,1);
   assert.equal(p.env.DB.sqlite.prepare("SELECT COUNT(*) n FROM audit_events WHERE action='submit-first'").get().n,1);
+});
+test('shared class code enrolls multiple rostered NIUs without individual enrollment codes',async()=>{
+  const env=await setup();
+  await enroll(env,'9201');await enroll(env,'9202');
+  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM students').get().n,2);
+  assert.equal((await request(env,'/api/register',{data:{niu:'9999',pin:'test-only-pin',classCode:CLASS_CODE}})).status,403);
+  assert.equal((await request(env,'/api/register',{data:{niu:'9201',pin:'other-test-pin',classCode:CLASS_CODE}})).status,403);
+  assert.equal((await request(env,'/api/login',{data:{niu:'9201',pin:'test-only-pin'}})).status,200);
+});
+test('instructor-only class-code configuration is hashed, private and rotatable',async()=>{
+  const env=await setup();
+  assert.equal((await request(env,'/api/admin/enrollment-code',{data:{code:'new-class-code'}})).status,403);
+  assert.equal((await request(env,'/api/admin/enrollment-code',{admin:true,data:{code:'tiny'}})).status,400);
+  const stored=env.DB.sqlite.prepare("SELECT value FROM settings WHERE key='enrollment_code_hash'").get().value;
+  assert.ok(stored.startsWith('p2$'));assert.notEqual(stored,CLASS_CODE);
+  const panel=await request(env,'/api/admin',{admin:true});assert.equal(panel.body.enrollmentCodeConfigured,true);
+  assert.equal(JSON.stringify(panel.body).includes(CLASS_CODE),false);assert.equal(JSON.stringify(panel.body).includes(stored),false);
+  assert.equal((await request(env,'/api/admin/enrollment-code',{admin:true,data:{code:'new-class-code'}})).status,200);
+  assert.equal((await request(env,'/api/register',{data:{niu:'9203',pin:'test-only-pin',classCode:CLASS_CODE}})).status,403);
+  await enroll(env,'9203','new-class-code');
+  const events=await request(env,'/api/admin/audit',{admin:true});assert.equal(JSON.stringify(events.body).includes('new-class-code'),false);
+});
+test('class code must be configured, and it cannot reset student PINs',async()=>{
+  const env=await setup();await enroll(env,'9204');
+  assert.equal((await request(env,'/api/recover',{data:{niu:'9204',classCode:CLASS_CODE,pin:'replacement-test-pin'}})).status,403);
+  assert.equal((await request(env,'/api/recover',{data:{niu:'9204',classCode:'test-enrollment-9204',pin:'replacement-test-pin'}})).status,200);
+  assert.equal((await request(env,'/api/login',{data:{niu:'9204',pin:'replacement-test-pin'}})).status,200);
+  env.DB.sqlite.exec("DELETE FROM settings WHERE key='enrollment_code_hash'");
+  assert.equal((await request(env,'/api/register',{data:{niu:'9205',pin:'test-only-pin',classCode:CLASS_CODE}})).status,503);
 });

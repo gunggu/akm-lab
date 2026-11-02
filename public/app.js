@@ -55,7 +55,7 @@ async function busy(button, task) {
   finally { delete button.dataset.pending; button.textContent = original; button.removeAttribute('aria-busy'); button.disabled = false; syncControls(); }
 }
 function syncControls() {
-  $('classControls').disabled = !report;
+  $('classControls').disabled = !report; $('enrollmentControls').disabled = !report;
   for (const id of ['exportCSV','exportJSON','discussionBtn']) $(id).disabled = !report || !!$(id).dataset.pending;
   if (report) {
     const phase = report.allocation;
@@ -159,11 +159,11 @@ async function load() {
     for(const button of document.querySelectorAll('.request'))if(!button.disabled)button.onclick=()=>busy(button,async()=>{await api('match',{partnerNiu:button.dataset.niu});await load();msg('Request sent. Meet your counterpart and ask them to confirm.',true);});
   } catch(error) { if(current!==generation)return; if(error.status===401){resetIdentity();view('gate');} msg(error.message); }
 }
-function clearReport() { adminGeneration++; report=null; $('stats').textContent='Dashboard not loaded. Enter your key and load the dashboard.'; $('adminTable').replaceChildren(); $('discussion').replaceChildren(); syncControls(); }
+function clearReport() { $('enrollmentStatus').textContent='Load the dashboard to configure the shared code.'; adminGeneration++; report=null; $('stats').textContent='Dashboard not loaded. Enter your key and load the dashboard.'; $('adminTable').replaceChildren(); $('discussion').replaceChildren(); syncControls(); }
 async function loadAdmin() {
   clearReport(); const currentAdmin=adminGeneration; $('stats').textContent='Loading dashboard…';
   try {
-    const r=await api('admin',undefined,true); if(currentAdmin!==adminGeneration)return; report=r; view('admin');
+    const r=await api('admin',undefined,true); if(currentAdmin!==adminGeneration)return; report=r; view('admin'); $('enrollmentStatus').textContent=r.enrollmentCodeConfigured?'A shared class code is configured. Set a new code below if needed; existing logins are unchanged.':'Set the shared class code below before students check in.';
     const matched=new Set(r.interactions.filter(x=>x.status==='confirmed').flatMap(x=>[x.lessor_niu,x.lessee_niu]));
     $('stats').textContent='Checked in: '+r.students.length+' · Phase: '+r.allocation+' · Confirmed interactions: '+r.interactions.filter(x=>x.status==='confirmed').length+' · Awaiting interaction: '+(r.students.length-matched.size)+' · Submitted: '+r.submissions.length+' · Drafts: '+r.drafts.length+' · Submissions '+(r.submissionsOpen?'open':'closed');
     $('adminTable').innerHTML='<thead><tr><th>NIU</th><th>Student</th><th>Case</th><th>Role</th><th>Confirmed counterparts</th><th>Submission</th></tr></thead><tbody>'+r.students.map(student=>'<tr><td>'+esc(student.niu)+'</td><td>'+esc(student.name)+'</td><td>'+esc(student.assigned_at?student.case_id:'Waiting')+'</td><td>'+esc(student.assigned_at?student.role:'—')+'</td><td>'+r.interactions.filter(x=>x.status==='confirmed'&&(x.lessor_niu===student.niu||x.lessee_niu===student.niu)).map(x=>esc(x.lessor_niu===student.niu?x.lessee_niu:x.lessor_niu)).join('; ')+'</td><td>'+(r.submissions.some(x=>x.niu===student.niu)?'Submitted':'Pending')+'</td></tr>').join('')+'</tbody>';
@@ -195,12 +195,17 @@ $('work').onsubmit=event=>{
 $('refresh').onclick=()=>busy($('refresh'),load);
 $('logout').onclick=()=>{if(dirty&&!confirm('Some changes are not saved. Sign out and leave them behind?'))return;resetIdentity();view('gate');};
 $('teacherLink').onclick=()=>{view('admin');clearReport();history.replaceState(null,'',base+'/admin');};
-$('goBack').onclick=()=>{clearReport();$('adminKey').value='';view('gate');history.replaceState(null,'',base||'/');};
+$('goBack').onclick=()=>{clearReport();$('adminKey').value='';$('sharedEnrollmentCode').value='';view('gate');history.replaceState(null,'',base||'/');};
 $('adminKey').addEventListener('input',clearReport);
 $('loadAdmin').onclick=()=>busy($('loadAdmin'),loadAdmin);
 $('migrate').onclick=()=>busy($('migrate'),async()=>{if(!$('adminKey').value)throw Error('Enter your instructor key first.');if(!confirm('Initialize missing V2 tables? Use only during planned setup.'))return;await api('admin/migrate',{},true);await loadAdmin();msg('Database setup completed.',true);});
 const commands={allocate:['allocate','Finalize attendance and randomize roles? Verify the attendance list first.'],reset:['reset','Reset this unused allocation? No draft, interaction or submission may exist.'],reopen:['reopen','Open late check-in?'],closeLate:['close-late',null],closeSubs:['close-submissions','Close submissions AND draft saves? Announce this to students first.'],openSubs:['open-submissions',null]};
 for(const[id,[path,question]]of Object.entries(commands))$(id).onclick=()=>busy($(id),()=>{if(question&&!confirm(question))return;return adminAction(path,path==='reset'?{confirm:'RESET_UNSTARTED_SESSION'}:{});});
+$('setEnrollmentCode').onclick=()=>busy($('setEnrollmentCode'),async()=>{
+  const code=$('sharedEnrollmentCode').value.trim();
+  if(code.length<6||code.length>64)throw Error('Choose a class code of 6–64 characters.');
+  await api('admin/enrollment-code',{code},true);$('sharedEnrollmentCode').value='';await loadAdmin();msg('Class enrollment code updated. Announce the code to attending students; their personal PINs are unchanged.',true);
+});
 $('assignLate').onclick=()=>busy($('assignLate'),async()=>{const niu=$('lateNiu').value.trim();if(!/^\d{4,12}$/.test(niu))throw Error('Enter a registered short NIU of 4–12 digits.');await adminAction('late',{niu,role:$('lateRole').value,caseId:Number($('lateCase').value)});});
 $('discussionBtn').onclick=()=>busy($('discussionBtn'),async()=>{
   const r=await api('admin/discussion',undefined,true);$('discussion').classList.remove('hidden');

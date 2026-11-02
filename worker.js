@@ -24,13 +24,14 @@ try{
 if(path==="/"||path==="/admin"){return env.ASSETS.fetch(new URL("/index.html",request.url));}
 if(path==="/api/cases")return json(CASES.map(({leaseType,note,...safe})=>safe));
 if(path==="/api/register"&&request.method==="POST"){
-let niu=String(body.niu||"").trim(),name=String(body.name||"").trim(),pin=String(body.pin||""),access=String(body.classCode||"");
-if(access!==env.CLASS_CODE)return fail("Invalid classroom access code.",403);
-if(!/^\d{4,12}$/.test(niu)||name.length<2||name.length>80||pin.length<6)return fail("Use 4–12 digit NIU, your name, and a PIN of 6+ characters.");
-if(await env.DB.prepare("SELECT niu FROM students WHERE niu=?").bind(niu).first())return fail("NIU already registered. Use Sign in.",409);
-let current=(await env.DB.prepare("SELECT role,case_id FROM students").all()).results;let assigned=roleCase(current);let hash=await digest(niu+"|"+pin+"|"+env.TOKEN_SECRET);
-await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) VALUES(?,?,?,?,?)").bind(niu,name,hash,assigned.role,assigned.case_id).run();
-return json({token:await token(env,niu)});
+ const niu=String(body.niu||"").trim(),pin=String(body.pin||""),code=String(body.classCode||"").trim();
+ if(!/^\d{4,12}$/.test(niu)||pin.length<8||code.length<10)return fail("Enter a valid short NIU, individual access code and a PIN of at least 8 characters.");
+ const codeHash=await digest(niu+"|"+code);
+ const pinHash=await digest(niu+"|"+pin+"|"+env.TOKEN_SECRET);
+ const result=await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) SELECT niu,name,?,role,case_id FROM roster WHERE niu=? AND access_hash=? AND claimed_at IS NULL AND NOT EXISTS (SELECT 1 FROM students WHERE students.niu=roster.niu)").bind(pinHash,niu,codeHash).run();
+ if(result.meta.changes!==1)return fail("Registration unavailable: check your NIU and individual access code, or sign in if already registered.",403);
+ await env.DB.prepare("UPDATE roster SET claimed_at=CURRENT_TIMESTAMP WHERE niu=?").bind(niu).run();
+ return json({token:await token(env,niu)});
 }
 if(path==="/api/login"&&request.method==="POST"){
 let niu=String(body.niu||"").trim(),pin=String(body.pin||"");let st=await env.DB.prepare("SELECT pin_hash FROM students WHERE niu=?").bind(niu).first();

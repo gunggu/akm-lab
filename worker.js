@@ -10,7 +10,7 @@ const fail=(m,s=400)=>json({error:m},s);
 async function digest(text){let bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes)).map(x=>x.toString(16).padStart(2,"0")).join("");}
 async function signature(env,payload){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.TOKEN_SECRET),"HMAC",false,["sign"]);const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload));return Array.from(new Uint8Array(sig)).map(x=>x.toString(16).padStart(2,"0")).join("");}
 async function token(env,niu){let payload=niu+"."+Math.floor(Date.now()/1000+12*3600);return payload+"."+await signature(env,payload);}
-async function actor(req,env){let t=(req.headers.get("Authorization")||"").replace(/^Bearer /,"");let p=t.split(".");if(p.length!==3||!(/^\d{4,12}$/.test(p[0]))||Number(p[1])<Date.now()/1000)return null;let expected=await signature(env,p[0]+"."+p[1]);if(expected!==p[2])return null;return await env.DB.prepare("SELECT niu,name,role,case_id FROM students WHERE niu=?").bind(p[0]).first();}
+async function actor(req,env){let t=(req.headers.get("Authorization")||"").replace(/^Bearer /,"");let p=t.split(".");if(p.length!==3||!(/^\d{4,12}$/.test(p[0]))||Number(p[1])<Date.now()/1000)return null;let expected=await signature(env,p[0]+"."+p[1]);if(expected!==p[2])return null;return await env.DB.prepare("SELECT niu,name,role,case_id,assigned_at FROM students WHERE niu=?").bind(p[0]).first();}
 
 const round=n=>Math.round(n);
 const presentValue=c=>c.rent*((1-(1+c.rate)**(-c.years))/c.rate)*(c.due==="beginning"?1+c.rate:1);
@@ -42,7 +42,7 @@ async function verifyPin(niu,pin,secret,stored){
 const safeCase=(c,role)=>role==="lessor"?((({leaseType,note,...v})=>({...v,note}))(c)):((({cost,leaseType,note,...v})=>({...v,note}))(c));
 async function audit(env,actor,action,details=""){await env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES(?,?,?)").bind(actor,action,details).run();}
 async function panel(env){
- const students=result(await env.DB.prepare("SELECT niu,name,role,case_id,created_at FROM students ORDER BY created_at,niu").all());
+ const students=result(await env.DB.prepare("SELECT niu,name,role,case_id,assigned_at,created_at FROM students ORDER BY created_at,niu").all());
  const interactions=result(await env.DB.prepare("SELECT * FROM interactions ORDER BY id").all());
  const submissions=result(await env.DB.prepare("SELECT * FROM submissions ORDER BY submitted_at").all()).map(x=>({...x,data:JSON.parse(x.data)}));
  const drafts=result(await env.DB.prepare("SELECT niu,updated_at FROM drafts").all());
@@ -56,11 +56,11 @@ export default {async fetch(request,env){
  let body={};if(["POST","PUT"].includes(request.method)){try{body=await request.json()}catch{return fail("Invalid JSON.")}}
  try {
  if(path==="/api/register"&&request.method==="POST"){
-  if(await setting(env,"allocation")!=="open")return fail("Check-in closed. Contact the instructor.",403);
+  if(!["open","late"].includes(await setting(env,"allocation")) )return fail("Check-in closed. Contact the instructor.",403);
   const niu=String(body.niu||"").trim(),pin=String(body.pin||""),code=String(body.classCode||"").trim();
   if(!/^\d{4,12}$/.test(niu)||pin.length<8||pin.length>128||code.length<10)return fail("Enter your short NIU, individual code and PIN of 8–128 characters.");
   const access=await digest(niu+"|"+code),hashed=await pinDigest(niu,pin,env.TOKEN_SECRET);
-  const inserted=await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) SELECT niu,name,?,'lessor',1 FROM roster WHERE niu=? AND access_hash=? AND claimed_at IS NULL AND EXISTS(SELECT 1 FROM settings WHERE key='allocation' AND value='open') AND NOT EXISTS(SELECT 1 FROM students WHERE students.niu=roster.niu)").bind(hashed,niu,access).run();
+  const inserted=await env.DB.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) SELECT niu,name,?,'lessor',1 FROM roster WHERE niu=? AND access_hash=? AND claimed_at IS NULL AND EXISTS(SELECT 1 FROM settings WHERE key='allocation' AND value IN ('open','late')) AND NOT EXISTS(SELECT 1 FROM students WHERE students.niu=roster.niu)").bind(hashed,niu,access).run();
   if(inserted.meta.changes!==1)return fail("Enrollment unavailable. Verify your code or sign in if already registered.",403);
   await env.DB.prepare("UPDATE roster SET claimed_at=CURRENT_TIMESTAMP WHERE niu=?").bind(niu).run();
   await audit(env,niu,"check-in");
@@ -98,7 +98,7 @@ export default {async fetch(request,env){
     const g=groups[candidates[random[0]%candidates.length]],l=g.filter(x=>x.role==="lessor").length;
     g.push({niu:nius[n++],role:l<=g.length-l?"lessor":"lessee"});
    }
-   const batch=[env.DB.prepare("INSERT INTO allocation_guard(id) VALUES('class')"),...groups.flatMap((g,i)=>g.map(x=>env.DB.prepare("UPDATE students SET role=?,case_id=? WHERE niu=?").bind(x.role,i+1,x.niu))),env.DB.prepare("UPDATE settings SET value='active' WHERE key='allocation' AND value='open'"),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','allocate',?)").bind(JSON.stringify(groups.map((g,i)=>({caseId:i+1,lessor:g.filter(x=>x.role==="lessor").length,lessee:g.filter(x=>x.role==="lessee").length}))))];
+   const batch=[env.DB.prepare("INSERT INTO allocation_guard(id) VALUES('class')"),...groups.flatMap((g,i)=>g.map(x=>env.DB.prepare("UPDATE students SET role=?,case_id=?,assigned_at=CURRENT_TIMESTAMP WHERE niu=?").bind(x.role,i+1,x.niu))),env.DB.prepare("UPDATE settings SET value='active' WHERE key='allocation' AND value='open'"),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','allocate',?)").bind(JSON.stringify(groups.map((g,i)=>({caseId:i+1,lessor:g.filter(x=>x.role==="lessor").length,lessee:g.filter(x=>x.role==="lessee").length}))))];
    await env.DB.batch(batch);
    return json({ok:true,checkedIn:nius.length,groups:groups.map((g,i)=>({caseId:i+1,lessors:g.filter(x=>x.role==="lessor").length,lessees:g.filter(x=>x.role==="lessee").length}))});
   }
@@ -110,7 +110,7 @@ export default {async fetch(request,env){
    if(!enrolled)return fail("Student must have registered before finalization. Instructor can reopen check-in explicitly.",409);
    const existing=await env.DB.prepare("SELECT 1 FROM interactions WHERE lessor_niu=? OR lessee_niu=?").bind(niu,niu).first();
    if(existing)return fail("Cannot move student after interactions exist.");
-   await env.DB.batch([env.DB.prepare("UPDATE students SET role=?,case_id=? WHERE niu=?").bind(role,caseId,niu),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','reassign',?)").bind(JSON.stringify({niu,role,caseId}))]);
+   await env.DB.batch([env.DB.prepare("UPDATE students SET role=?,case_id=?,assigned_at=CURRENT_TIMESTAMP WHERE niu=?").bind(role,caseId,niu),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','reassign',?)").bind(JSON.stringify({niu,role,caseId}))]);
    return json({ok:true});
   }
   if(path==="/api/admin/reopen"&&request.method==="POST"){
@@ -150,10 +150,11 @@ export default {async fetch(request,env){
  const state=await setting(env,"allocation")||"open";
  if(path==="/api/me"&&state==="open")return json({waiting:true,user:{niu:user.niu,name:user.name}});
  if(path==="/api/me"&&state==="late"){
-  const assigned=await env.DB.prepare("SELECT role,case_id FROM students WHERE niu=?").bind(user.niu).first();
-  if(!assigned||assigned.case_id===0)return json({waiting:true,user:{niu:user.niu,name:user.name}});
+  const assigned=await env.DB.prepare("SELECT role,case_id,assigned_at FROM students WHERE niu=?").bind(user.niu).first();
+  if(!user.assigned_at)return json({waiting:true,user:{niu:user.niu,name:user.name}});
  }
  if(!["active","late"].includes(state))return fail("Waiting for instructor assignment.",409);
+ if(!user.assigned_at&&path==="/api/me")return json({waiting:true,user:{niu:user.niu,name:user.name}});
  const c=CASES[user.case_id-1];if(!c)return fail("Instructor must assign your company.",409);
  if(path==="/api/me"){
   const links=result(await env.DB.prepare("SELECT * FROM interactions WHERE lessor_niu=? OR lessee_niu=? ORDER BY id").bind(user.niu,user.niu).all());

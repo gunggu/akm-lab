@@ -77,10 +77,19 @@ async function migrate(env){
 
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname.replace(/^\/lease-lab(?=\/|$)/,"")||"/";
- if(path==="/api/health"){if(env.DB){try{await migrate(env);}catch(e){return json({service:"lease-lab",version:"v2-production",databaseBound:true,migrationReady:false,error:"Migration failed; check database schema."},503);}}return json({service:"lease-lab",version:"v2-production",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY),migrationReady:!!env.DB});}
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2-production",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY),migrationReady:"check-admin-migrate"});
  if(path==="/"||path==="/admin")return env.ASSETS.fetch(new URL("/index.html",request.url));
  if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return fail("Server not configured.",503);
- try{await migrate(env);}catch(e){return fail("Database migration required or failed; inspect Worker logs.",503);}
+ if(path==="/api/admin/migrate"&&request.method==="POST"){
+  if(!authAdmin(request,env))return fail("Invalid instructor key.",403);
+  try{await migrate(env);return json({ok:true,migrationReady:true});}
+  catch(e){return fail("Migration failed: "+String(e.message||e),503);}
+}
+if(path.startsWith("/api/")){
+ try{const row=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='drafts'").first();
+ if(!row)return fail("V2 database migration pending. Open instructor console and select Initialize V2 database.",503);}
+ catch(e){return fail("Database check failed.",503);}
+}
  let body={};if(["POST","PUT"].includes(request.method)){try{body=await request.json()}catch{return fail("Invalid JSON.")}}
  try {
  if(path==="/api/register"&&request.method==="POST"){

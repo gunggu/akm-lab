@@ -1,9 +1,9 @@
 const CASES=[
-{id:1,brand:"Astra Precision Machines",asset:"CNC machining center",cost:580000000,fv:728666000,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
+{id:1,brand:"Astra Precision Machines",asset:"CNC machining center",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
 {id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
-{id:3,brand:"Cakra Industrial Print",asset:"Industrial label printer",cost:250000000,fv:308875000,rent:110000000,years:3,life:4,rate:0.07,due:"beginning",residual:0,leaseType:"finance",note:"Most of the printer's economic life is covered by the contract."},
+{id:3,brand:"Cakra Industrial Print",asset:"Industrial label printer",cost:250000000,fv:308881998,rent:110000000,years:3,life:4,rate:0.07,due:"beginning",residual:0,leaseType:"finance",note:"Most of the printer's economic life is covered by the contract."},
 {id:4,brand:"Garuda Cold Chain Equipment",asset:"Refrigeration equipment fleet",cost:420000000,fv:600000000,rent:80000000,years:3,life:9,rate:0.08,due:"end",residual:390000000,leaseType:"operating",note:"The lessor expects substantial use and residual value following the lease."},
-{id:5,brand:"Merapi Automation Works",asset:"Robotic manufacturing arm",cost:600000000,fv:887562000,rent:280000000,years:4,life:5,rate:0.10,due:"end",residual:0,leaseType:"finance",note:"The lease spans most of useful life, and lease payments recover substantially all fair value."}
+{id:5,brand:"Merapi Automation Works",asset:"Robotic manufacturing arm",cost:600000000,fv:887562325,rent:280000000,years:4,life:5,rate:0.10,due:"end",residual:0,leaseType:"finance",note:"The lease spans most of useful life, and lease payments recover substantially all fair value."}
 ];
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const fail=(m,s=400)=>json({error:m},s);
@@ -195,9 +195,9 @@ export default {async fetch(request,env){
   const data=body.data||{},fields=["classification","reason","pv","firstInterest","journal","statementImpact","reflection"];
   for(const x of fields)if(!String(data[x]??"").trim())return fail("Complete "+x+" before final submission.");
   let journal;try{journal=JSON.parse(data.journal)}catch{return fail("Invalid journal data.")};
-  if(!Array.isArray(journal)||journal.length<2)return fail("Enter journal lines.");
+  if(!Array.isArray(journal)||journal.length<4)return fail("Enter balanced commencement and Year 1 journal entries.");
   const buckets={};for(const line of journal){const amt=Number(line.amount);if(!line.account||!["Debit","Credit"].includes(line.side)||!Number.isFinite(amt)||amt<=0)return fail("Each journal line needs account, Debit/Credit and a positive amount.");const event=line.event||"Commencement";(buckets[event]??={debit:0,credit:0})[line.side.toLowerCase()]+=amt;}
-  for(const [event,v] of Object.entries(buckets))if(Math.abs(v.debit-v.credit)>1)return fail(event+" journal does not balance.");
+  for(const event of ["Commencement","Year 1"]){const v=buckets[event];if(!v||v.debit<=0||v.credit<=0||Math.abs(v.debit-v.credit)>1)return fail(event+" journal requires equal, positive debit and credit totals.");}
   const text=JSON.stringify(data);if(text.length>16000)return fail("Submission exceeds size limit.");
   await env.DB.prepare("INSERT INTO submissions(niu,data) VALUES(?,?) ON CONFLICT(niu) DO UPDATE SET data=excluded.data,submitted_at=CURRENT_TIMESTAMP").bind(user.niu,text).run();
   return json({ok:true});

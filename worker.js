@@ -15,9 +15,9 @@ const roleCase=(students)=>{let counts=CASES.map(c=>({id:c.id,lessor:0,lessee:0}
 const calc=(c)=>{let d=c.rate,n=c.years,pv=c.rent*(1-Math.pow(1+d,-n))/d*(c.due==="beginning"?(1+d):1);return {pv,interestYearOne:c.due==="beginning"?(pv-c.rent)*d:pv*d,depreciation:c.leaseType==="operating"?c.cost/c.life:pv/(c.years),lessorCostOfSales:c.leaseType==="finance"?c.cost:0};};
 export default {async fetch(request,env){
 const url=new URL(request.url),path=url.pathname.replace(/^\/lease-lab(?=\/|$)/,"")||"/";
-if(path==="/api/health")return json({service:"lease-lab",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.CLASS_CODE&&env.ADMIN_KEY)});
+if(path==="/api/health")return json({service:"lease-lab",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY)});
 if(path==="/"||path==="/admin")return env.ASSETS.fetch(new URL("/index.html",request.url));
-if(!env.DB||!env.TOKEN_SECRET||!env.CLASS_CODE||!env.ADMIN_KEY)return fail("Server not configured: set D1 and all secrets.",503);
+if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return fail("Server not configured: set D1 and all secrets.",503);
 let body={};
 if(request.method==="POST"){try{body=await request.json();}catch{return fail("Invalid JSON.");}}
 try{

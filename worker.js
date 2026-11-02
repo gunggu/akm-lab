@@ -114,7 +114,8 @@ export default {async fetch(request,env){
   if(state!=="active"||body.confirm!=="RESET_UNSTARTED_SESSION")return fail("Reset requires instructor confirmation during active session.",409);
   const anyInteraction=await env.DB.prepare("SELECT 1 FROM interactions LIMIT 1").first();
   const anySubmission=await env.DB.prepare("SELECT 1 FROM submissions LIMIT 1").first();
-  if(anyInteraction||anySubmission)return fail("Cannot reset once students have interacted or submitted. Preserve this class record.",409);
+  const anyDraft=await env.DB.prepare("SELECT 1 FROM drafts LIMIT 1").first();
+  if(anyInteraction||anySubmission||anyDraft)return fail("Cannot reset after drafts, interactions or submissions. Preserve student work.",409);
   await env.DB.batch([
    env.DB.prepare("DELETE FROM allocation_guard WHERE id='class'"),
    env.DB.prepare("UPDATE students SET assigned_at=NULL"),
@@ -129,7 +130,8 @@ export default {async fetch(request,env){
    const enrolled=await env.DB.prepare("SELECT niu FROM students WHERE niu=?").bind(niu).first();
    if(!enrolled)return fail("Student must have registered before finalization. Instructor can reopen check-in explicitly.",409);
    const existing=await env.DB.prepare("SELECT 1 FROM interactions WHERE lessor_niu=? OR lessee_niu=?").bind(niu,niu).first();
-   if(existing)return fail("Cannot move student after interactions exist.");
+   const work=await env.DB.prepare("SELECT 1 FROM drafts WHERE niu=? UNION SELECT 1 FROM submissions WHERE niu=? LIMIT 1").bind(niu,niu).first();
+   if(existing||work)return fail("Cannot move student after draft, interaction or submission exists.");
    await env.DB.batch([env.DB.prepare("UPDATE students SET role=?,case_id=?,assigned_at=CURRENT_TIMESTAMP WHERE niu=?").bind(role,caseId,niu),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','reassign',?)").bind(JSON.stringify({niu,role,caseId}))]);
    return json({ok:true});
   }

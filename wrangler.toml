@@ -1,0 +1,22 @@
+name = "lease-lab"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Add the two custom-domain path routes only AFTER staging tests:
+# [[routes]]
+# pattern = "akm.gunggu.my.id/lease-lab"
+# zone_name = "gunggu.my.id"
+# [[routes]]
+# pattern = "akm.gunggu.my.id/lease-lab/*"
+# zone_name = "gunggu.my.id"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "session10-lease-lab"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"

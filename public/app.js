@@ -208,6 +208,32 @@ $('setEnrollmentCode').onclick=()=>busy($('setEnrollmentCode'),async()=>{
   await api('admin/enrollment-code',{code},true);$('sharedEnrollmentCode').value='';await loadAdmin();msg('Class enrollment code updated. Announce the code to attending students; their personal PINs are unchanged.',true);
 });
 $('assignLate').onclick=()=>busy($('assignLate'),async()=>{const niu=$('lateNiu').value.trim();if(!/^\d{4,12}$/.test(niu))throw Error('Enter a registered short NIU of 4–12 digits.');await adminAction('late',{niu,role:$('lateRole').value,caseId:Number($('lateCase').value)});});
+
+function solutionJournal(lines) {
+ return '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Debit</th><th>Credit</th><th>Amount (IDR)</th><th>Explanation</th></tr></thead><tbody>'+lines.map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(x.debit)+'</td><td>'+esc(x.credit)+'</td><td>'+esc(fmt(x.amount))+'</td><td>'+esc(x.reason)+'</td></tr>').join('')+'</tbody></table></div>';
+}
+function solutionSchedule(rows) {
+ return '<div class="table-wrap"><table><thead><tr><th>Year</th><th>Opening balance</th><th>Interest</th><th>Payment</th><th>Closing balance</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+x.year+'</td><td>'+fmt(x.opening)+'</td><td>'+fmt(x.interest)+'</td><td>'+fmt(x.payment)+'</td><td>'+fmt(x.closing)+'</td></tr>').join('')+'</tbody></table></div>';
+}
+function solutionMetrics(o) {
+ return '<div class="table-wrap"><table><thead><tr><th>Measurement</th><th>IDR</th></tr></thead><tbody>'+Object.entries(o).filter(([,v])=>v!==null).map(([k,v])=>'<tr><td>'+esc(k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()))+'</td><td>'+fmt(v)+'</td></tr>').join('')+'</tbody></table></div>';
+}
+$('loadAnswerKeys').onclick=()=>busy($('loadAnswerKeys'),async()=>{
+ const target=$('answerKeyContent');target.textContent='Loading instructor solutions…';
+ try {
+  const result=await api('admin/answer-keys',undefined,true);
+  target.innerHTML='<p class="muted">'+esc(result.reference)+'</p>'+result.cases.map(c=>
+   '<details class="panel"><summary><b>Case '+c.id+' · '+esc(c.manufacturer)+' / '+esc(c.lessee)+'</b> — '+esc(c.asset)+'</summary>'+
+   '<h3>Classification and reasoning</h3><p>'+esc(c.classification)+'. '+esc(c.rationale)+'</p>'+
+   '<h3>Measurement</h3>'+solutionMetrics(c.amounts)+
+   '<h3>Lessee journal entries</h3>'+solutionJournal(c.journal.lessee)+
+   '<h3>Manufacturer/dealer lessor journal entries</h3>'+solutionJournal(c.journal.lessor)+
+   '<h3>Effective-interest schedule</h3>'+solutionSchedule(c.schedule)+
+   '<h3>Discussion notes</h3><ul>'+c.cautions.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></details>'
+  ).join('');
+ } catch(error){target.textContent=error.message;throw error;}
+});
+
 $('discussionBtn').onclick=()=>busy($('discussionBtn'),async()=>{
   const r=await api('admin/discussion',undefined,true);$('discussion').classList.remove('hidden');
   $('discussion').innerHTML='<h2>Discussion dashboard</h2><div class="panel"><b>Kieso Chapter 20 — Guided discussion</b><ol>'+DEBRIEF_QUESTIONS.map(question=>'<li>'+esc(question)+'</li>').join('')+'</ol></div><p>Student amounts are submitted judgments, not automatically graded. Medians below exclude legacy worksheets with earlier measurement labels. Compare like measurements and discuss valid lessor–lessee differences.</p><div class="grid">'+r.discussions.map(d=>'<article class="card"><span class="eyebrow">Case '+d.caseId+'</span><h3>'+esc(d.manufacturer)+'</h3><p>Participants '+d.participants+' · Confirmed interactions '+d.interactions+' · Submissions '+d.submissions+' · Legacy worksheets '+d.legacySubmissions+'</p><p>Lessor classification: '+d.finance+' finance / '+d.operating+' operating</p><p>Median lessor receivable / operating asset: '+(d.medianLessor==null?'—':fmt(d.medianLessor))+'</p><p>Median recognized lessee liability: '+(d.medianLessee==null?'—':fmt(d.medianLessee))+'</p><p>Median ROU asset: '+(d.medianROU==null?'—':fmt(d.medianROU))+'</p><details><summary>Instructor benchmark and debrief</summary><p><b>Kieso Chapter 20 teaching focus:</b> '+esc(misconception(d.caseId))+'</p><p>Reconcile commencement cash, receivable/liability, ROU asset, selling profit and Year 1 effects. The amounts below are instructor benchmarks, not automated grades.</p><pre>'+esc(JSON.stringify(d.expected,null,2))+'</pre></details></article>').join('')+'</div>';

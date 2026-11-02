@@ -1,9 +1,9 @@
 const CASES=[
-{id:1,brand:"Astra Precision Machines",asset:"CNC machining center",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
-{id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
-{id:3,brand:"Cakra Industrial Print",asset:"Industrial label printer",cost:250000000,fv:308881998,rent:110000000,years:3,life:4,rate:0.07,due:"beginning",residual:0,leaseType:"finance",note:"Most of the printer's economic life is covered by the contract."},
-{id:4,brand:"Garuda Cold Chain Equipment",asset:"Refrigeration equipment fleet",cost:420000000,fv:600000000,rent:80000000,years:3,life:9,rate:0.08,due:"end",residual:390000000,leaseType:"operating",note:"The lessor expects substantial use and residual value following the lease."},
-{id:5,brand:"Merapi Automation Works",asset:"Robotic manufacturing arm",cost:600000000,fv:887562325,rent:280000000,years:4,life:5,rate:0.10,due:"end",residual:0,leaseType:"finance",note:"The lease spans most of useful life, and lease payments recover substantially all fair value."}
+{id:1,brand:"Astra Precision Machines",asset:"CNC machining center",lesseeCompany:"Pratama Aerospace Components",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
+{id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",lesseeCompany:"Bumi Segar Foods",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
+{id:3,brand:"Cakra Industrial Print",asset:"Industrial label printer",lesseeCompany:"Satria Medical Labels",cost:250000000,fv:308881998,rent:110000000,years:3,life:4,rate:0.07,due:"beginning",residual:0,leaseType:"finance",note:"Most of the printer's economic life is covered by the contract."},
+{id:4,brand:"Garuda Cold Chain Equipment",asset:"Refrigeration equipment fleet",lesseeCompany:"Aruna Fresh Logistics",cost:420000000,fv:600000000,rent:80000000,years:3,life:9,rate:0.08,due:"end",residual:390000000,leaseType:"operating",note:"The lessor expects substantial use and residual value following the lease."},
+{id:5,brand:"Merapi Automation Works",asset:"Robotic manufacturing arm",lesseeCompany:"Baskara Automotive Parts",cost:600000000,fv:887562325,rent:280000000,years:4,life:5,rate:0.10,due:"end",residual:0,leaseType:"finance",note:"The lease spans most of useful life, and lease payments recover substantially all fair value."}
 ];
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const fail=(m,s=400)=>json({error:m},s);
@@ -66,6 +66,14 @@ export default {async fetch(request,env){
   await audit(env,niu,"check-in");
   return json({token:await token(env,niu)});
  }
+ if(path==="/api/recover"&&request.method==="POST"){
+  const niu=String(body.niu||"").trim(),code=String(body.classCode||"").trim(),newPin=String(body.pin||"");
+  if(!/^\d{4,12}$/.test(niu)||code.length<10||newPin.length<8||newPin.length>128)return fail("Invalid recovery fields.");
+  const proof=await digest(niu+"|"+code),newHash=await pinDigest(niu,newPin,env.TOKEN_SECRET);
+  const r=await env.DB.prepare("UPDATE students SET pin_hash=? WHERE niu=? AND EXISTS(SELECT 1 FROM roster WHERE niu=? AND access_hash=?)").bind(newHash,niu,niu,proof).run();
+  if(r.meta.changes!==1)return fail("Recovery verification failed.",403);
+  await audit(env,niu,"pin-recovery");return json({ok:true});
+ }
  if(path==="/api/login"&&request.method==="POST"){
   const niu=String(body.niu||"").trim(),pin=String(body.pin||"");
   if(!/^\d{4,12}$/.test(niu)||pin.length>128)return fail("Incorrect NIU or PIN.",401);
@@ -102,7 +110,19 @@ export default {async fetch(request,env){
    await env.DB.batch(batch);
    return json({ok:true,checkedIn:nius.length,groups:groups.map((g,i)=>({caseId:i+1,lessors:g.filter(x=>x.role==="lessor").length,lessees:g.filter(x=>x.role==="lessee").length}))});
   }
-  if(path==="/api/admin/late"&&request.method==="POST"){
+  if(path==="/api/admin/reset"&&request.method==="POST"){
+  if(state!=="active"||body.confirm!=="RESET_UNSTARTED_SESSION")return fail("Reset requires instructor confirmation during active session.",409);
+  const anyInteraction=await env.DB.prepare("SELECT 1 FROM interactions LIMIT 1").first();
+  const anySubmission=await env.DB.prepare("SELECT 1 FROM submissions LIMIT 1").first();
+  if(anyInteraction||anySubmission)return fail("Cannot reset once students have interacted or submitted. Preserve this class record.",409);
+  await env.DB.batch([
+   env.DB.prepare("DELETE FROM allocation_guard WHERE id='class'"),
+   env.DB.prepare("UPDATE students SET assigned_at=NULL"),
+   env.DB.prepare("UPDATE settings SET value='open' WHERE key='allocation'"),
+   env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','reset-unstarted','reopen allocation')")
+  ]);return json({ok:true});
+ }
+ if(path==="/api/admin/late"&&request.method==="POST"){
    if(state!=="active")return fail("Only available during active simulation.");
    const niu=String(body.niu||"").trim(),role=String(body.role||"").trim(),caseId=Number(body.caseId);
    if(!/^\d{4,12}$/.test(niu)||!["lessor","lessee"].includes(role)||!Number.isInteger(caseId)||caseId<1||caseId>5)return fail("Invalid late-arrival assignment.");
@@ -184,6 +204,7 @@ export default {async fetch(request,env){
  }
  if(path==="/api/draft"&&request.method==="POST"){
   if(await setting(env,"submissions")==="closed")return fail("Submissions closed.",403);
+  if(!user.assigned_at)return fail("No assignment yet.",409);
   if(JSON.stringify(body.data||{}).length>16000)return fail("Draft too large.");
   await env.DB.prepare("INSERT INTO drafts(niu,data) VALUES(?,?) ON CONFLICT(niu) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP").bind(user.niu,JSON.stringify(body.data||{})).run();
   return json({ok:true});

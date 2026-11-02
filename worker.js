@@ -1,4 +1,5 @@
 import { validateWorksheet } from "./public/worksheet.js";
+import { buildInstructorGuide } from "./instructor-guide.js";
 export const CASES=[
 {id:1,brand:"Astra Precision Machines",asset:"CNC machining center",lesseeCompany:"Pratama Aerospace Components",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
 {id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",lesseeCompany:"Bumi Segar Foods",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
@@ -245,6 +246,7 @@ export default {async fetch(request,env){
    await env.DB.prepare("INSERT INTO settings(key,value) VALUES('submissions','open') ON CONFLICT(key) DO UPDATE SET value='open'").run();
    await audit(env,"instructor","open-submissions");return json({ok:true});
   }
+  if(path==="/api/admin/answer-keys"&&request.method==="GET")return json({cases:CASES.map(buildInstructorGuide),reference:"Kieso, Weygandt & Warfield, Intermediate Accounting IFRS, International Adaptation, fifth edition, Chapter 20; IFRS 16.",note:"Instructor-only worked solutions. Each amount is rounded to whole IDR. The first-year calculations use unrounded intermediate amounts."});
   if(path==="/api/admin/audit")return json({events:result(await env.DB.prepare("SELECT * FROM audit_events ORDER BY id DESC LIMIT 150").all())});
   const report=await panel(env);
   if(path==="/api/admin/discussion"){

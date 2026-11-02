@@ -27,10 +27,12 @@ export function buildInstructorGuide(c){
  ]};
  const schedule=[];let outstanding=opening;
  for(let year=1;year<=n;year++){
-   const periodInterest=outstanding*r;
-   const payment=begin?(year<n?rent:0):rent;
-   const closing=outstanding+periodInterest-payment;
-   schedule.push({year,opening:amount(outstanding),interest:amount(periodInterest),payment:amount(payment),closing:amount(Math.max(0,closing))});
+   const openingBeforePayment=outstanding;
+   const payment=begin?(year===1?0:rent):rent;
+   const interestBase=begin?(outstanding-payment):outstanding;
+   const periodInterest=interestBase*r;
+   const closing=begin?interestBase+periodInterest:outstanding+periodInterest-payment;
+   schedule.push({year,opening:amount(openingBeforePayment),interest:amount(periodInterest),payment:amount(payment),closing:amount(Math.max(0,closing))});
    outstanding=closing;
  }
  const rationale=finance

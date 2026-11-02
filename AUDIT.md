@@ -1,56 +1,36 @@
-# Session 10 LeaseLab — Implementation and Audit Report
-Date: 2026-11-02
-Scope: `lease-lab/` on `feature/session10-lessor-lessee-lab`.
-Status: **DRAFT / NOT APPROVED FOR LIVE CLASSROOM DEPLOYMENT**
+# LeaseLab V2 audit remediation
 
-## Improvements completed
-1. Anonymized instructor discussion endpoint `GET /api/admin/discussion`, returning per-case enrollment, pairs, submissions, lessor classifications and median lease measures without names or NIUs.
-2. Discussion screen with five case cards, expected treatment and numerical benchmark, designed for the final 45-minute debrief.
-3. Instructor-only financial data: manufacturer asset cost and answer classification are removed from the lessee API response.
-4. Lessees use the IFRS 16 right-of-use / lease-liability model instead of being required to elect operating/finance classification.
-5. Mandatory class schedule is documented as quiz 30 minutes / lab 45 / instructor discussion 45.
+This branch addresses the 2 November 2026 audit against `feature/lease-lab` at `d40dc538`. It has not been deployed or exercised with production accounts. `npm test` runs entirely on disposable data.
 
-## Source-level checks (NOT runtime-tested)
-| Check | Assessment |
+| Finding | Change / status |
 |---|---|
-| Discussion endpoint behind instructor key | Pass by source inspection |
-| New discussion UI and action handler | Pass by source inspection |
-| Anonymized aggregated projected results | Pass by source inspection; small group sizes still permit potential inference |
-| Same-case exclusive claim | Pass by SQL inspection; UNIQUE constraints guard the two sides |
-| Role persistence after registration | Pass by source inspection |
-| No existing textbook viewer files modified | Pass by changed-file inspection |
-| Correct lessee classification terminology | Improved |
-| Case prompt ambiguity for manufacturer sales-type accounting | **Needs correction/validation** |
-| 54-student concurrent registration balance | **Not guaranteed** |
-| NIU ownership verified | **No** |
-| Deployment and browser integration | **Not tested** |
+| F01 Case 3 benchmark | Correct outstanding lessor net investment after commencement cash; independent payment-schedule regressions for all cases |
+| F02 saved draft restoration | Explicit immutable submitted view; distinct saved drafts preserved and downloadable; new drafts restored for unsubmitted students |
+| F03 accessible names | Unique IDs and associated labels for static controls; meaningful generated journal names, focus styling and scroll-region names |
+| F04 replacement after comparison | Atomic insert-only first submission, server-side replacement refusal, locked worksheet, version tag and submission audit event |
+| F05 `/admin/` | Canonical 308 redirect; tests at root and `/lease-lab` prefix |
+| F06 readiness | Separate read-only `/api/ready`; required schema/settings probes, configuration check and five-second bound; `/api/health` remains liveness |
+| F07 misleading controls / request states | Disabled pre-load and phase-inapplicable actions, pending indicator, 12-second client timeout, non-JSON/network error guidance, no automatic mutation retries |
+| F08 stale messages | Clear messages on view changes; distinct success styling |
+| F09 late assignment | Assignment accepted during both active and late phases; documented sequence |
+| F10 shared-device state | Cancel pending work, clear scalar fields and identity state on logout/login, generation checks for stale student responses |
+| F11 raw comparison | Structured role comparison and readable journal tables; explanation of valid asymmetry and instructor debrief prompts |
+| F12 measurement ambiguity | Recognized lessee liability and ROU recorded separately; role-specific lessor measurement; legacy submissions flagged and excluded from new-version medians |
+| F13 weak submission schema | Shared server/client validation for role, numeric ranges, events, text sizes, journal structure and positive balanced amounts; no claim of automatic accounting grading |
+| F14 mobile usability | Scroll hint, labelled focusable journal region, responsive action wrapping; **actual mobile browser rendering still needs staging verification** |
+| F15 instructions / docs | Student sequence and recovery guidance; updated deployment, allocation, late-arrival and assessment runbooks |
 
-## High-priority issues to resolve before opening registration
-**P0 — identity assurance.** NIU + self-selected PIN + a shared class code permits another person to pre-register a student's NIU. Require a roster-based one-use credential or SSO, or explicitly treat this as a low-stakes activity and reconcile attendance manually.
+Local integration testing additionally found that token HMAC key import omitted the required hash algorithm. It now explicitly imports HMAC/SHA-256. Tests cover the full local register/login/confirmation/submission flow rather than only page responses.
 
-**P0 — safe concurrency in assignment.** The current register flow performs a SELECT followed by an INSERT. Simultaneous registration may calculate the same role/case before either INSERT is visible; this can break parity and leave a matching shortage. Move allocation to a serialized transactional coordinator (Cloudflare Durable Object or comparable single-writer coordinator), and enforce roster quotas. The matching INSERT itself is exclusive, but assignment is not.
+The old allocation algorithm also favored lessors in odd-sized case groups: 54 students could become 29 lessors and 25 lessees. Allocation now distributes complete pairs, giving exactly 27/27 and case pair counts 6/6/5/5/5 for 54 attendees. An odd attendance total adds one randomly selected role to a smallest active case.
 
-**P0 — numerical and IFRS 16 instructor answer key.** The current `calc` outputs present value of fixed rents but do not incorporate expected residual into the lessor's net investment, and the manufacturer lessor's sales revenue, cost of sales, selling profit and residual treatment are not fully articulated. A manufacturer lessor under IFRS 16 must use the IFRS 16 manufacturer/dealer rules; do not grade using current basic `calc` fields as if they were a complete solution. In cases 2 and 4, residual is *unguaranteed*, so it is not part of the lessee lease liability; operating lessor retains underlying asset. In finance cases residual is zero. For lease commencement payments in advance, distinguish amounts paid at commencement from outstanding lease liability.
+Validation completed locally: 22 passing tests (`npm test`), JavaScript syntax checks, diff whitespace checks, and form/fieldset nesting with POST fallback checks. Test coverage includes simultaneous first-submission requests, upstream HTML errors, request timeout cleanup, sign-out state clearing, accessible label associations and module routes at both base paths. No production request or database mutation was needed for these tests.
 
-**P1 — scenario design.** For finance lessors, the provided fair value and fixed rents create present values that can differ; explain the pricing and the manufacturer revenue/cost of sales basis. Case 3 advance payments need a distinct schedule. For operating lessors, residual is a learning assumption rather than an amount recognized as a lease receivable.
+Existing tables, roster, accounts and submitted rows are preserved; no new database schema is required by the patch. A legacy submitted row may already represent a replacement made before this change; it is preserved as found, not misrepresented as a recoverable historical first attempt. No code can reconstruct overwritten historical versions from that row alone.
 
-**P1 — student UI.** Current work area is text-field based and can be long on phones. Implement a streamlined guided journal entry table, autosave drafts, and a per-task timer with a teacher override before the live session. The expected 20-minute accounting window may be demanding.
+## Remaining validation
 
-**P1 — instructor operations.** Add a way to repair mistaken/absent registrations and forcibly rematch absent students, remove test data, close registration, and stop submissions.
-
-**P1 — security/privacy.** Add login rate limiting, session revocation, roster validation, deletion/retention policy for NIUs and answers, and incident responses. Instructor raw key in browser memory should not be exposed on screen or in public demonstrations. Smaller groups may be reidentified from aggregate metrics.
-
-**P2 — live readiness.** Cloudflare D1 database and secrets have not been configured. Run a staged test with 54 dummy registrations including synchronized bursts, uniqueness challenges, five-case quotas, matching race, both role submissions, exports, mobile rendering, and the projected screen.
-
-## Pedagogical acceptance criteria
-- Quiz remains outside the case app for the first 30 minutes.
-- Case runs 30–75 minutes; every learner has one stable role and one same-case counterpart, or a documented fallback.
-- Pair can identify which side reports ROU asset vs manufacturer inventory/underlying asset/lease receivable.
-- Finance lessor: student can explain sales income, cost of sales (manufacturer-specific), finance income, receivable and no depreciation.
-- Operating lessor: student can explain retained asset, rental income and depreciation.
-- Lessee: recognizes ROU asset, lease liability, interest and depreciation, irrespective of lessor's operating classification.
-- The 75–120 minute discussion uses only aggregates/projected anonymized information.
-- No live rollout until source, math and identity/concurrency tests pass.
-
-## Verdict
-**Prototype enhanced and statically audited. NOT production-ready.** A successful GitHub commit is not evidence of a functional deployment. Live tests and the three P0 issues must be closed before accepting actual student registrations.
+- Run the Cloudflare staging rehearsal in `DEPLOY_PATH.md`, including actual mobile/screen-reader/browser behavior, module assets, connectivity failures and 54-user concurrency.
+- Obtain human sign-off on complete accounting journals/statements and the assessment rubric for all five cases.
+- Verify production deployment identity and database/roster readiness after an approved release. A successful local test is not evidence of live deployment.
+- Further negotiation, amortization-schedule authoring, revision history and separately stored post-comparison reflection are possible extensions, not features delivered by this patch. The selected policy is a locked independent submission followed by instructor-led debrief.

@@ -1,4 +1,5 @@
-const CASES=[
+import { validateWorksheet } from "./public/worksheet.js";
+export const CASES=[
 {id:1,brand:"Astra Precision Machines",asset:"CNC machining center",lesseeCompany:"Pratama Aerospace Components",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
 {id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",lesseeCompany:"Bumi Segar Foods",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
 {id:3,brand:"Cakra Industrial Print",asset:"Industrial label printer",lesseeCompany:"Satria Medical Labels",cost:250000000,fv:308881998,rent:110000000,years:3,life:4,rate:0.07,due:"beginning",residual:0,leaseType:"finance",note:"Most of the printer's economic life is covered by the contract."},
@@ -8,16 +9,16 @@ const CASES=[
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const fail=(m,s=400)=>json({error:m},s);
 async function digest(text){let bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes)).map(x=>x.toString(16).padStart(2,"0")).join("");}
-async function signature(env,payload){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.TOKEN_SECRET),"HMAC",false,["sign"]);const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload));return Array.from(new Uint8Array(sig)).map(x=>x.toString(16).padStart(2,"0")).join("");}
+async function signature(env,payload){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.TOKEN_SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload));return Array.from(new Uint8Array(sig)).map(x=>x.toString(16).padStart(2,"0")).join("");}
 async function token(env,niu){let payload=niu+"."+Math.floor(Date.now()/1000+12*3600);return payload+"."+await signature(env,payload);}
 async function actor(req,env){let t=(req.headers.get("Authorization")||"").replace(/^Bearer /,"");let p=t.split(".");if(p.length!==3||!(/^\d{4,12}$/.test(p[0]))||Number(p[1])<Date.now()/1000)return null;let expected=await signature(env,p[0]+"."+p[1]);if(expected!==p[2])return null;return await env.DB.prepare("SELECT niu,name,role,case_id,assigned_at FROM students WHERE niu=?").bind(p[0]).first();}
 
 const round=n=>Math.round(n);
 const presentValue=c=>c.rent*((1-(1+c.rate)**(-c.years))/c.rate)*(c.due==="beginning"?1+c.rate:1);
-const model=c=>{
- const pv=presentValue(c),firstInterest=(pv-(c.due==="beginning"?c.rent:0))*c.rate,fin=c.leaseType==="finance";
+export const model=c=>{
+ const pv=presentValue(c),commencementCash=c.due==="beginning"?c.rent:0,firstInterest=(pv-(c.due==="beginning"?c.rent:0))*c.rate,fin=c.leaseType==="finance";
  const revenue=fin?Math.min(c.fv,pv):0,costSales=fin?c.cost:0;
- return {classification:c.leaseType,pv:round(pv),leaseLiabilityAtCommencement:round(pv-(c.due==="beginning"?c.rent:0)),rouAsset:round(pv),lessorNetInvestment:fin?round(pv):null,firstInterest:round(firstInterest),lesseeInterest:round(firstInterest),lessorFinanceIncome:fin?round(firstInterest):0,lessorRevenue:round(revenue),lessorCostOfSales:round(costSales),sellingProfit:round(revenue-costSales),operatingDepreciation:!fin?round(c.cost/c.life):null,operatingRentalIncome:!fin?c.rent:null,lesseeDepreciation:round(pv/c.years),timing:c.due};
+ return {classification:c.leaseType,pv:round(pv),leaseLiabilityAtCommencement:round(pv-(c.due==="beginning"?c.rent:0)),rouAsset:round(pv),cashAtCommencement:commencementCash,lessorInitialMeasurement:fin?round(pv-commencementCash):c.cost,lessorNetInvestment:fin?round(pv-commencementCash):null,firstInterest:round(firstInterest),lesseeInterest:round(firstInterest),lessorFinanceIncome:fin?round(firstInterest):0,lessorRevenue:round(revenue),lessorCostOfSales:round(costSales),sellingProfit:round(revenue-costSales),operatingDepreciation:!fin?round(c.cost/c.life):null,operatingRentalIncome:!fin?c.rent:null,lesseeDepreciation:round(pv/c.years),timing:c.due};
 };
 const result=(r,k)=>r?.results||[];
 const setting=async(env,key)=>((await env.DB.prepare("SELECT value FROM settings WHERE key=?").bind(key).first())||{}).value;
@@ -75,21 +76,56 @@ async function migrate(env){
  await db.prepare("CREATE INDEX IF NOT EXISTS idx_interactions_status ON interactions(status)").run();
 }
 
+async function probeReadiness(env){
+ if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return {ok:false,reason:"configuration-pending"};
+ try{
+  const checks=[
+   "SELECT niu,name,pin_hash,role,case_id,assigned_at,created_at FROM students LIMIT 0",
+   "SELECT niu,name,access_hash,claimed_at FROM roster LIMIT 0",
+   "SELECT niu,data,submitted_at FROM submissions LIMIT 0",
+   "SELECT key,value FROM settings LIMIT 0",
+   "SELECT id,case_id,lessor_niu,lessee_niu,status,initiated_by,confirmed_at FROM interactions LIMIT 0",
+   "SELECT id FROM allocation_guard LIMIT 0", "SELECT niu,data,updated_at FROM drafts LIMIT 0",
+   "SELECT actor,action,details FROM audit_events LIMIT 0", "SELECT id,failures,locked_until FROM login_limits LIMIT 0"
+  ];
+  await env.DB.batch(checks.map(sql=>env.DB.prepare(sql)));
+  for(const key of ["allocation","submissions"])if(!await setting(env,key))return {ok:false,reason:"setup-pending"};
+  return {ok:true,reason:"ready"};
+ }catch{return {ok:false,reason:"database-or-schema-unavailable"};}
+}
+
+async function readiness(env){
+ let timer;
+ try{return await Promise.race([probeReadiness(env),new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,reason:"database-timeout"}),5000);})]);}
+ finally{clearTimeout(timer);}
+}
+
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname.replace(/^\/lease-lab(?=\/|$)/,"")||"/";
- if(path==="/api/health")return json({service:"lease-lab",version:"v2-production",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY),migrationReady:"check-admin-migrate"});
- if(path==="/"||path==="/admin")return env.ASSETS.fetch(new URL("/index.html",request.url));
+ if(path==="/admin/"){
+  url.pathname=url.pathname.slice(0,-1);
+  return new Response(null,{status:308,headers:{location:url.toString()}});
+ }
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2.1",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
+ if(path==="/api/ready"){
+  const ready=await readiness(env);
+  return json({service:"lease-lab",version:"v2.1",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
+ }
+ if(path==="/"||path==="/admin"||["/worksheet.js","/app.js"].includes(path)){
+  if(!["GET","HEAD"].includes(request.method))return fail("Reload before submitting. The application script may not have loaded.",405);
+  return env.ASSETS.fetch(new URL(["/worksheet.js","/app.js"].includes(path)?path:"/index.html",request.url));
+ }
+ if(!path.startsWith("/api/"))return fail("Page not found.",404);
  if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return fail("Server not configured.",503);
  if(path==="/api/admin/migrate"&&request.method==="POST"){
   if(!authAdmin(request,env))return fail("Invalid instructor key.",403);
   try{await migrate(env);return json({ok:true,migrationReady:true});}
-  catch(e){return fail("Migration failed: "+String(e.message||e),503);}
-}
-if(path.startsWith("/api/")){
- try{const row=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='drafts'").first();
- if(!row)return fail("V2 database migration pending. Open instructor console and select Initialize V2 database.",503);}
- catch(e){return fail("Database check failed.",503);}
-}
+  catch(e){return fail("Database setup could not be completed. Ask the instructor to check the deployment.",503);}
+ }
+ // Authenticate instructor requests before revealing any setup state.
+ if(path.startsWith("/api/admin")&&!authAdmin(request,env))return fail("Invalid instructor key.",403);
+ const ready=await readiness(env);
+ if(!ready.ok)return fail("Database setup is not ready. Ask the instructor to check setup before signing in.",503);
  let body={};if(["POST","PUT"].includes(request.method)){try{body=await request.json()}catch{return fail("Invalid JSON.")}}
  try {
  if(path==="/api/register"&&request.method==="POST"){
@@ -134,14 +170,18 @@ if(path.startsWith("/api/")){
    const nius=result(await env.DB.prepare("SELECT niu FROM students ORDER BY niu").all()).map(x=>x.niu);
    if(nius.length<2)return fail("At least two students must check in.");
    for(let i=nius.length-1;i>0;i--){const a=new Uint32Array(1);crypto.getRandomValues(a);const j=a[0]%(i+1);[nius[i],nius[j]]=[nius[j],nius[i]];}
-   const groups=Array.from({length:5},()=>[]),active=Math.min(5,Math.floor(nius.length/2));let n=0;
-   for(let i=0;i<active;i++)groups[i].push({niu:nius[n++],role:"lessor"},{niu:nius[n++],role:"lessee"});
-   while(n<nius.length){
+   const groups=Array.from({length:5},()=>[]),active=Math.min(5,Math.floor(nius.length/2));
+   const pairCount=Math.floor(nius.length/2);let n=0;
+   // Allocate whole pairs so 54 attendees produce 27 of each role, not 29/25.
+   for(let i=0;i<active;i++){
+    const pairs=Math.floor(pairCount/active)+(i<pairCount%active?1:0);
+    for(let j=0;j<pairs;j++)groups[i].push({niu:nius[n++],role:"lessor"},{niu:nius[n++],role:"lessee"});
+   }
+   if(n<nius.length){
     const least=Math.min(...groups.slice(0,active).map(g=>g.length));
     const candidates=groups.slice(0,active).map((g,i)=>g.length===least?i:-1).filter(i=>i>=0);
-    const random=new Uint32Array(1);crypto.getRandomValues(random);
-    const g=groups[candidates[random[0]%candidates.length]],l=g.filter(x=>x.role==="lessor").length;
-    g.push({niu:nius[n++],role:l<=g.length-l?"lessor":"lessee"});
+    const random=new Uint32Array(2);crypto.getRandomValues(random);
+    groups[candidates[random[0]%candidates.length]].push({niu:nius[n],role:random[1]%2?"lessor":"lessee"});
    }
    const batch=[env.DB.prepare("INSERT INTO allocation_guard(id) VALUES('class')"),...groups.flatMap((g,i)=>g.map(x=>env.DB.prepare("UPDATE students SET role=?,case_id=?,assigned_at=CURRENT_TIMESTAMP WHERE niu=?").bind(x.role,i+1,x.niu))),env.DB.prepare("UPDATE settings SET value='active' WHERE key='allocation' AND value='open'"),env.DB.prepare("INSERT INTO audit_events(actor,action,details) VALUES('instructor','allocate',?)").bind(JSON.stringify(groups.map((g,i)=>({caseId:i+1,lessor:g.filter(x=>x.role==="lessor").length,lessee:g.filter(x=>x.role==="lessee").length}))))];
    await env.DB.batch(batch);
@@ -161,7 +201,7 @@ if(path.startsWith("/api/")){
   ]);return json({ok:true});
  }
  if(path==="/api/admin/late"&&request.method==="POST"){
-   if(state!=="active")return fail("Only available during active simulation.");
+   if(!["active","late"].includes(state))return fail("Assign late arrivals during an active simulation or open late check-in.",409);
    const niu=String(body.niu||"").trim(),role=String(body.role||"").trim(),caseId=Number(body.caseId);
    if(!/^\d{4,12}$/.test(niu)||!["lessor","lessee"].includes(role)||!Number.isInteger(caseId)||caseId<1||caseId>5)return fail("Invalid late-arrival assignment.");
    const enrolled=await env.DB.prepare("SELECT niu FROM students WHERE niu=?").bind(niu).first();
@@ -199,8 +239,9 @@ if(path.startsWith("/api/")){
     const members=report.students.filter(x=>x.case_id===c.id&&(state==="active"||state==="late"));
     const answers=report.submissions.filter(x=>members.some(s=>s.niu===x.niu));
     const role=r=>answers.filter(x=>members.some(s=>s.niu===x.niu&&s.role===r));
-    const median=(xs,key)=>{const a=xs.map(x=>Number(String(x.data[key]??"").replace(/[ ,]/g,""))).filter(Number.isFinite).sort((a,b)=>a-b);return a.length?a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2:null;};
-    return {caseId:c.id,manufacturer:c.brand,expectedType:c.leaseType,expected:model(c),participants:members.length,interactions:report.interactions.filter(x=>x.case_id===c.id&&x.status==="confirmed").length,submissions:answers.length,lessorSubmissions:role("lessor").length,lesseeSubmissions:role("lessee").length,finance:role("lessor").filter(x=>x.data.classification==="Finance lease").length,operating:role("lessor").filter(x=>x.data.classification==="Operating lease").length,medianLessor:median(role("lessor"),"pv"),medianLessee:median(role("lessee"),"pv")};
+    const currentRole=r=>role(r).filter(x=>x.data.worksheetVersion==="v2.1");
+    const median=(xs,key)=>{const a=xs.filter(x=>x.data[key]!==undefined&&x.data[key]!==null&&String(x.data[key]).trim()!=="").map(x=>Number(String(x.data[key]).replace(/[ ,]/g,""))).filter(Number.isFinite).sort((a,b)=>a-b);return a.length?a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2:null;};
+    return {caseId:c.id,manufacturer:c.brand,expectedType:c.leaseType,expected:model(c),participants:members.length,interactions:report.interactions.filter(x=>x.case_id===c.id&&x.status==="confirmed").length,submissions:answers.length,legacySubmissions:answers.filter(x=>x.data.worksheetVersion!=="v2.1").length,lessorSubmissions:role("lessor").length,lesseeSubmissions:role("lessee").length,finance:role("lessor").filter(x=>x.data.classification==="Finance lease").length,operating:role("lessor").filter(x=>x.data.classification==="Operating lease").length,medianLessor:median(currentRole("lessor"),"pv"),medianLessee:median(currentRole("lessee"),"pv"),medianROU:median(currentRole("lessee"),"rouAsset")};
    });return json({discussions});
   }
   return json({...report,submissionsOpen:(await setting(env,"submissions"))!=="closed"});
@@ -214,6 +255,7 @@ if(path.startsWith("/api/")){
  }
  if(!["active","late"].includes(state))return fail("Waiting for instructor assignment.",409);
  if(!user.assigned_at&&path==="/api/me")return json({waiting:true,user:{niu:user.niu,name:user.name}});
+ if(!user.assigned_at&&path!=="/api/me")return fail("Waiting for instructor assignment.",409);
  const c=CASES[user.case_id-1];if(!c)return fail("Instructor must assign your company.",409);
  if(path==="/api/me"){
   const links=result(await env.DB.prepare("SELECT * FROM interactions WHERE lessor_niu=? OR lessee_niu=? ORDER BY id").bind(user.niu,user.niu).all());
@@ -244,22 +286,24 @@ if(path.startsWith("/api/")){
  if(path==="/api/draft"&&request.method==="POST"){
   if(await setting(env,"submissions")==="closed")return fail("Submissions closed.",403);
   if(!user.assigned_at)return fail("No assignment yet.",409);
-  if(JSON.stringify(body.data||{}).length>16000)return fail("Draft too large.");
+  if(await env.DB.prepare("SELECT 1 FROM submissions WHERE niu=?").bind(user.niu).first())return fail("Your submitted worksheet is locked. Any earlier saved draft is preserved.",409);
+  if(!body.data||typeof body.data!=="object"||Array.isArray(body.data)||JSON.stringify(body.data).length>16000)return fail("Invalid draft or draft too large.");
   await env.DB.prepare("INSERT INTO drafts(niu,data) VALUES(?,?) ON CONFLICT(niu) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP").bind(user.niu,JSON.stringify(body.data||{})).run();
   return json({ok:true});
  }
  if(path==="/api/submit"&&request.method==="POST"){
+  if(!user.assigned_at)return fail("No assignment yet.",409);
   if(await setting(env,"submissions")==="closed")return fail("Submissions closed.",403);
   const confirmed=await env.DB.prepare("SELECT id FROM interactions WHERE status='confirmed' AND (lessor_niu=? OR lessee_niu=?)").bind(user.niu,user.niu).first();
   if(!confirmed)return fail("You need at least one counterpart-confirmed interaction.",409);
-  const data=body.data||{},fields=["classification","reason","pv","firstInterest","journal","statementImpact","reflection"];
-  for(const x of fields)if(!String(data[x]??"").trim())return fail("Complete "+x+" before final submission.");
-  let journal;try{journal=JSON.parse(data.journal)}catch{return fail("Invalid journal data.")};
-  if(!Array.isArray(journal)||journal.length<4)return fail("Enter balanced commencement and Year 1 journal entries.");
-  const buckets={};for(const line of journal){const amt=Number(line.amount);if(!line.account||!["Debit","Credit"].includes(line.side)||!Number.isFinite(amt)||amt<=0)return fail("Each journal line needs account, Debit/Credit and a positive amount.");const event=line.event||"Commencement";(buckets[event]??={debit:0,credit:0})[line.side.toLowerCase()]+=amt;}
-  for(const event of ["Commencement","Year 1"]){const v=buckets[event];if(!v||v.debit<=0||v.credit<=0||Math.abs(v.debit-v.credit)>1)return fail(event+" journal requires equal, positive debit and credit totals.");}
-  const text=JSON.stringify(data);if(text.length>16000)return fail("Submission exceeds size limit.");
-  await env.DB.prepare("INSERT INTO submissions(niu,data) VALUES(?,?) ON CONFLICT(niu) DO UPDATE SET data=excluded.data,submitted_at=CURRENT_TIMESTAMP").bind(user.niu,text).run();
+  const data=body.data,error=validateWorksheet(data,user.role);
+  if(error)return fail(error);
+  const writes=await env.DB.batch([
+   env.DB.prepare("INSERT OR IGNORE INTO submissions(niu,data) VALUES(?,?)").bind(user.niu,JSON.stringify({...data,worksheetVersion:"v2.1"})),
+   env.DB.prepare("INSERT INTO audit_events(actor,action,details) SELECT ?,'submit-first','v2.1' WHERE changes()=1").bind(user.niu)
+  ]);
+  const inserted=writes[0];
+  if(inserted.meta.changes!==1)return fail("Your first submission is locked. It cannot be replaced after comparison is available.",409);
   return json({ok:true});
  }
  return fail("Not found.",404);

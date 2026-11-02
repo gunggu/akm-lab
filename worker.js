@@ -22,7 +22,7 @@ let body={};
 if(request.method==="POST"){try{body=await request.json();}catch{return fail("Invalid JSON.");}}
 try{
 if(path==="/"||path==="/admin"){return env.ASSETS.fetch(new URL("/index.html",request.url));}
-if(path==="/api/cases")return json(CASES.map(({leaseType,note,...safe})=>safe));
+if(path==="/api/cases")return json(CASES.map(({leaseType,note,cost,...safe})=>safe));
 if(path==="/api/register"&&request.method==="POST"){
  const niu=String(body.niu||"").trim(),pin=String(body.pin||""),code=String(body.classCode||"").trim();
  if(!/^\d{4,12}$/.test(niu)||pin.length<8||code.length<10)return fail("Enter a valid short NIU, individual access code and a PIN of at least 8 characters.");
@@ -58,7 +58,7 @@ let partner=null,partnerSubmission=null;
 if(match){let pn=user.role==="lessor"?match.lessee_niu:match.lessor_niu;partner=await env.DB.prepare("SELECT niu,name,role FROM students WHERE niu=?").bind(pn).first();}
 let mine=await env.DB.prepare("SELECT data,submitted_at FROM submissions WHERE niu=?").bind(user.niu).first();
 if(mine&&partner){let ps=await env.DB.prepare("SELECT data,submitted_at FROM submissions WHERE niu=?").bind(partner.niu).first();if(ps)partnerSubmission={data:JSON.parse(ps.data),submitted_at:ps.submitted_at};}
-const studentCase=user.role==="lessor"?c:((({cost,leaseType,...rest})=>rest)(c));
+const studentCase=user.role==="lessor"?((({leaseType,...rest})=>rest)(c)):((({cost,leaseType,...rest})=>rest)(c));
 return json({user,case:studentCase,match,partner,submission:mine?{data:JSON.parse(mine.data),submitted_at:mine.submitted_at}:null,partnerSubmitted:!!partnerSubmission,partnerSubmission:mine?partnerSubmission:null});
 }
 if(path==="/api/queue"){

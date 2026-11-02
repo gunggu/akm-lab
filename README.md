@@ -19,3 +19,6 @@ Create the `session10-lease-lab` D1 database, replace the placeholder ID in `wra
 **Not production ready:** See `AUDIT.md`. NIU verification, allocation concurrency and complete manufacturer/dealer lessor accounting grading remain unresolved. Do not put real student data in the app yet.
 
 The future custom domain path is `akm.gunggu.my.id/lease-lab`, but the custom routes in `wrangler.toml` are intentionally commented out pending staging verification. The original textbook app remains in the separate `gunggu/flipbookakm` repository.
+
+## Cloudflare build refresh
+A fresh commit was requested to trigger a new connected build from `feature/lease-lab`. The intended deploy command is `npx wrangler deploy --config ./wrangler.toml`. This commit does not change application behavior or configure the D1 database.

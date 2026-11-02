@@ -48,11 +48,39 @@ async function panel(env){
  const drafts=result(await env.DB.prepare("SELECT niu,updated_at FROM drafts").all());
  return {students,interactions,submissions,drafts,allocation:await setting(env,"allocation")||"open",cases:CASES.map(c=>({...c,expected:model(c)}))};
 }
+
+async function migrate(env){
+ const db=env.DB;
+ await db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
+ await db.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('allocation','open')").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS interactions (id INTEGER PRIMARY KEY AUTOINCREMENT,case_id INTEGER NOT NULL,lessor_niu TEXT NOT NULL REFERENCES students(niu),lessee_niu TEXT NOT NULL REFERENCES students(niu),created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(lessor_niu,lessee_niu))").run();
+ const add=async(table,column,ddl)=>{
+  const columns=(await db.prepare("PRAGMA table_info("+table+")").all()).results.map(x=>x.name);
+  if(!columns.includes(column)){
+   try{await db.prepare("ALTER TABLE "+table+" ADD COLUMN "+ddl).run();}
+   catch(e){if(!String(e.message).includes("duplicate column name"))throw e;}
+  }
+ };
+ await add("students","assigned_at","assigned_at TEXT");
+ await add("interactions","status","status TEXT NOT NULL DEFAULT 'requested'");
+ await add("interactions","initiated_by","initiated_by TEXT");
+ await add("interactions","confirmed_at","confirmed_at TEXT");
+ await db.prepare("CREATE TABLE IF NOT EXISTS allocation_guard (id TEXT PRIMARY KEY)").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS drafts (niu TEXT PRIMARY KEY REFERENCES students(niu),data TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS audit_events (id INTEGER PRIMARY KEY AUTOINCREMENT,actor TEXT NOT NULL,action TEXT NOT NULL,details TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS login_limits (id TEXT PRIMARY KEY,failures INTEGER NOT NULL DEFAULT 0,locked_until TEXT)").run();
+ await db.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('submissions','open')").run();
+ await db.prepare("UPDATE settings SET value='active' WHERE key='allocation' AND value='closed'").run();
+ await db.prepare("UPDATE interactions SET initiated_by=lessor_niu WHERE initiated_by IS NULL").run();
+ await db.prepare("CREATE INDEX IF NOT EXISTS idx_interactions_status ON interactions(status)").run();
+}
+
 export default {async fetch(request,env){
  const url=new URL(request.url),path=url.pathname.replace(/^\/lease-lab(?=\/|$)/,"")||"/";
- if(path==="/api/health")return json({service:"lease-lab",version:"v2-staging",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY)});
+ if(path==="/api/health"){if(env.DB){try{await migrate(env);}catch(e){return json({service:"lease-lab",version:"v2-production",databaseBound:true,migrationReady:false,error:"Migration failed; check database schema."},503);}}return json({service:"lease-lab",version:"v2-production",route:"ok",databaseBound:!!env.DB,secretsConfigured:!!(env.TOKEN_SECRET&&env.ADMIN_KEY),migrationReady:!!env.DB});}
  if(path==="/"||path==="/admin")return env.ASSETS.fetch(new URL("/index.html",request.url));
  if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return fail("Server not configured.",503);
+ try{await migrate(env);}catch(e){return fail("Database migration required or failed; inspect Worker logs.",503);}
  let body={};if(["POST","PUT"].includes(request.method)){try{body=await request.json()}catch{return fail("Invalid JSON.")}}
  try {
  if(path==="/api/register"&&request.method==="POST"){

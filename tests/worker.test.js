@@ -87,6 +87,24 @@ test('page routes, trailing slash redirect and module assets work at both bases'
   }
   assert.equal((await request(env,'/missing-page')).status,404);
 });
+test('entire browser module graph is served as JavaScript at both bases',async()=>{
+  const env=await setup();
+  for(const base of ['', '/lease-lab']){
+    const pending=[base+'/app.js'],visited=new Set();
+    while(pending.length){
+      const path=pending.shift();if(visited.has(path))continue;visited.add(path);
+      const response=await request(env,path);
+      assert.equal(response.status,200,'Missing browser module: '+path);
+      assert.match(response.headers.get('content-type'),/javascript/,'Wrong module MIME type: '+path);
+      for(const[,specifier]of response.body.matchAll(/^import\s+[^;]*?from\s*['"]([^'"]+)['"]/gm)){
+        assert.ok(specifier.startsWith('./'),'Unexpected external module dependency');
+        pending.push(new URL(specifier,'https://example.test'+path).pathname);
+      }
+    }
+    assert.ok(visited.has(base+'/pedagogy.js'),'The teaching dependency must be checked');
+    assert.equal((await request(env,base+'/instructor-guide.js')).status,404,'Keep instructor solutions server-side');
+  }
+});
 test('unauthorized admin access reveals neither dashboard nor setup state',async()=>{
   const env=await setup();assert.equal((await request(env,'/api/admin')).status,403);
   env.DB.sqlite.exec('DROP TABLE drafts');assert.equal((await request(env,'/api/admin')).status,403);

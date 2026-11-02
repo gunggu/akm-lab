@@ -1,5 +1,6 @@
 import { validateWorksheet } from "./public/worksheet.js";
 import { buildInstructorGuide } from "./instructor-guide.js";
+const CLIENT_ASSETS=new Set(["/app.js","/worksheet.js","/pedagogy.js"]);
 export const CASES=[
 {id:1,brand:"Astra Precision Machines",asset:"CNC machining center",lesseeCompany:"Pratama Aerospace Components",cost:580000000,fv:728667905,rent:220000000,years:4,life:5,rate:0.08,due:"end",residual:0,leaseType:"finance",note:"A highly specialized machine; a substantial portion of its economic life is leased."},
 {id:2,brand:"Nusantara Packaging Systems",asset:"Modular packaging line",lesseeCompany:"Bumi Segar Foods",cost:320000000,fv:490000000,rent:65000000,years:3,life:10,rate:0.09,due:"end",residual:300000000,leaseType:"operating",note:"The lessor retains the equipment and significant residual-value exposure."},
@@ -107,14 +108,16 @@ export default {async fetch(request,env){
   url.pathname=url.pathname.slice(0,-1);
   return new Response(null,{status:308,headers:{location:url.toString()}});
  }
- if(path==="/api/health")return json({service:"lease-lab",version:"v2.2",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2.2.1",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
  if(path==="/api/ready"){
   const ready=await readiness(env);
-  return json({service:"lease-lab",version:"v2.2",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
+  return json({service:"lease-lab",version:"v2.2.1",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
  }
- if(path==="/"||path==="/admin"||["/worksheet.js","/app.js"].includes(path)){
+ if(path==="/"||path==="/admin"||CLIENT_ASSETS.has(path)){
   if(!["GET","HEAD"].includes(request.method))return fail("Reload before submitting. The application script may not have loaded.",405);
-  return env.ASSETS.fetch(new URL(["/worksheet.js","/app.js"].includes(path)?path:"/index.html",request.url));
+  const asset=await env.ASSETS.fetch(new URL(CLIENT_ASSETS.has(path)?path:"/index.html",request.url));
+  const headers=new Headers(asset.headers);headers.set("cache-control","no-store");
+  return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
  }
  if(!path.startsWith("/api/"))return fail("Page not found.",404);
  if(!env.DB||!env.TOKEN_SECRET||!env.ADMIN_KEY)return fail("Server not configured.",503);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { validateWorksheet, selectSavedWork, comparisonRows } from '../public/worksheet.js';
+import {studentPrompt, misconception, DEBRIEF_QUESTIONS} from '../public/pedagogy.js';
 
 // A deliberately small DOM facade tests request/state lifecycle, not browser layout.
 function client(fetchImpl, timers={setTimeout,clearTimeout}) {
@@ -22,8 +23,8 @@ function client(fetchImpl, timers={setTimeout,clearTimeout}) {
   for(const field of ['classification','pv','firstInterest','rouAsset','reason','statementImpact','reflection'])work.fields.set(field,new Element());
   work.elements={namedItem:key=>work.fields.get(key)};
   const session=new Map();
-  const context=vm.createContext({document:{getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows});
-  const code=readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/^import[^\n]*\n/,'');
+  const context=vm.createContext({document:{getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows,studentPrompt,misconception,DEBRIEF_QUESTIONS});
+  const code=readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/^import[^\n]*\n/gm,'');
   vm.runInContext(code,context);
   return {elements,run:code=>vm.runInContext(code,context)};
 }

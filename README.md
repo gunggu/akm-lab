@@ -48,3 +48,7 @@ See `AUDIT.md` for implemented fixes and remaining validation limits.
 The instructor sets or rotates the common class code in the authenticated console. Only a PBKDF2 hash is stored in the existing settings table; plaintext is never returned in reports or audit logs. No Cloudflare secret or schema migration is needed. Before the first code is set, new enrollment returns an explicit setup message. Existing students continue signing in with their personal PINs. The shared code only admits rostered, unclaimed NIUs while check-in is open or late.
 
 The class code must not be used as PIN recovery proof. Students who forget their PIN ask the instructor privately for their original individual recovery code from the private roster-code file. This exception avoids distributing individual codes to everyone at the beginning of a short class. Never publish that private recovery-code file.
+
+## Discussion case summary
+
+After loading the authenticated instructor dashboard, choose **Case summary · Discussion**. The projection view hides the instructor controls and contains no student names, NIUs, credentials or submissions. Start with the all-five-case comparison, then choose Case 1–5 or Previous/Next for side-by-side lessor and lessee benchmarks, contract terms, Year 1 effects and discussion points. **Back to instructor** exits presentation mode. The summary uses the existing instructor-only worked-solutions endpoint; solution data is not embedded in the public page.

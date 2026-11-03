@@ -109,6 +109,15 @@ test('unauthorized admin access reveals neither dashboard nor setup state',async
   const env=await setup();assert.equal((await request(env,'/api/admin')).status,403);
   env.DB.sqlite.exec('DROP TABLE drafts');assert.equal((await request(env,'/api/admin')).status,403);
 });
+test('discussion-summary source is instructor-only and contains five cases, not student records',async()=>{
+  const env=await setup();
+  assert.equal((await request(env,'/api/admin/answer-keys')).status,403);
+  const response=await request(env,'/api/admin/answer-keys',{admin:true});assert.equal(response.status,200);
+  assert.deepEqual(response.body.cases.map(c=>c.id),[1,2,3,4,5]);
+  assert.equal(response.body.cases[2].amounts.liabilityAfterCommencement,198881998);
+  assert.equal(response.body.cases[2].amounts.rouAssetAtCommencement,308881998);
+  assert.equal(response.body.students,undefined);
+});
 test('54 attendees allocate exactly 27 lessors and 27 lessees with paired case quotas',async()=>{
   const env=await setup();
   for(let i=0;i<54;i++)env.DB.sqlite.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) VALUES(?,?,?,'lessor',1)").run(String(9100+i),'Disposable attendee '+i,'not-a-login-fixture');

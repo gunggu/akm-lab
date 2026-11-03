@@ -108,10 +108,10 @@ export default {async fetch(request,env){
   url.pathname=url.pathname.slice(0,-1);
   return new Response(null,{status:308,headers:{location:url.toString()}});
  }
- if(path==="/api/health")return json({service:"lease-lab",version:"v2.2.1",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2.3",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
  if(path==="/api/ready"){
   const ready=await readiness(env);
-  return json({service:"lease-lab",version:"v2.2.1",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
+  return json({service:"lease-lab",version:"v2.3",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
  }
  if(path==="/"||path==="/admin"||CLIENT_ASSETS.has(path)){
   if(!["GET","HEAD"].includes(request.method))return fail("Reload before submitting. The application script may not have loaded.",405);

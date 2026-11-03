@@ -6,6 +6,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 const fmt = value => new Intl.NumberFormat('en-ID', {maximumFractionDigits:0}).format(Number(value) || 0);
 const base = location.pathname.startsWith('/lease-lab') ? '/lease-lab' : '';
 let token = sessionStorage.getItem('leaseToken'), snapshot = null, report = null;
+let summaryCases = [], summaryIndex = null;
 let loadedIdentity = null, generation = 0, draftTimer, draftRequest = null, dirty = false;
 let controllers = new Set(), journalSequence = 0, submitting = false, adminGeneration = 0;
 
@@ -14,8 +15,8 @@ function msg(text = '', success = false) {
   $('message').classList.toggle('success', success);
 }
 function view(id) {
-  msg();
-  for (const name of ['gate','student','admin']) $(name).classList.toggle('hidden', name !== id);
+  msg(); document.body.classList.toggle('presenting',id==='caseSummary');
+  for (const name of ['gate','student','admin','caseSummary']) $(name).classList.toggle('hidden', name !== id);
 }
 function resetIdentity() {
   clearTimeout(draftTimer);
@@ -57,7 +58,7 @@ async function busy(button, task) {
 }
 function syncControls() {
   $('classControls').disabled = !report; $('enrollmentControls').disabled = !report;
-  for (const id of ['exportCSV','exportJSON','discussionBtn']) $(id).disabled = !report || !!$(id).dataset.pending;
+  for (const id of ['exportCSV','exportJSON','discussionBtn','caseSummaryBtn']) $(id).disabled = !report || !!$(id).dataset.pending;
   if (report) {
     const phase = report.allocation;
     const states = {allocate:phase !== 'open', reset:phase !== 'active' || report.interactions.length > 0 || report.submissions.length > 0 || report.drafts.length > 0,
@@ -160,7 +161,7 @@ async function load() {
     for(const button of document.querySelectorAll('.request'))if(!button.disabled)button.onclick=()=>busy(button,async()=>{await api('match',{partnerNiu:button.dataset.niu});await load();msg('Request sent. Meet your counterpart and ask them to confirm.',true);});
   } catch(error) { if(current!==generation)return; if(error.status===401){resetIdentity();view('gate');} msg(error.message); }
 }
-function clearReport() { $('enrollmentStatus').textContent='Load the dashboard to configure the shared code.'; adminGeneration++; report=null; $('stats').textContent='Dashboard not loaded. Enter your key and load the dashboard.'; $('adminTable').replaceChildren(); $('discussion').replaceChildren(); syncControls(); }
+function clearReport() { summaryCases=[];summaryIndex=null;$('caseSummaryContent').replaceChildren();$('summaryCaseTabs').replaceChildren(); $('enrollmentStatus').textContent='Load the dashboard to configure the shared code.'; adminGeneration++; report=null; $('stats').textContent='Dashboard not loaded. Enter your key and load the dashboard.'; $('adminTable').replaceChildren(); $('discussion').replaceChildren(); syncControls(); }
 async function loadAdmin() {
   clearReport(); const currentAdmin=adminGeneration; $('stats').textContent='Loading dashboard…';
   try {
@@ -233,6 +234,38 @@ $('loadAnswerKeys').onclick=()=>busy($('loadAnswerKeys'),async()=>{
   ).join('');
  } catch(error){target.textContent=error.message;throw error;}
 });
+
+function summaryMoney(value){return value===null||value===undefined?'—':fmt(value);}
+function summaryInitial(c){return c.classification.startsWith('Finance')?c.amounts.liabilityAfterCommencement:c.assumptions.carryingCost;}
+function summaryMetrics(items){return items.map(([label,value])=>'<div class="detail"><span>'+esc(label)+'</span><b>'+esc(summaryMoney(value))+'</b></div>').join('');}
+function renderCaseSummary(index=null){
+ summaryIndex=index;
+ $('summaryPrevious').disabled=index===null||index===0;
+ $('summaryNext').disabled=index===null||index===summaryCases.length-1;
+ $('summaryOverview').setAttribute('aria-current',index===null?'page':'false');
+ $('summaryCaseTabs').innerHTML=summaryCases.map((c,i)=>'<button type="button" class="secondary summary-case" data-index="'+i+'" aria-current="'+(i===index?'page':'false')+'">Case '+c.id+'</button>').join('');
+ for(const button of document.querySelectorAll('.summary-case'))button.onclick=()=>renderCaseSummary(Number(button.dataset.index));
+ const target=$('caseSummaryContent');
+ if(index===null){
+  $('caseSummaryTitle').textContent='Five lease cases · Discussion summary';
+  target.innerHTML='<p class="notice">Compare the accounting models first. The operating lessor retains its underlying asset, while its lessee still recognizes a liability and a right-of-use asset.</p><div class="table-wrap" role="region" aria-label="All five lease cases" tabindex="0"><table class="summary-overview"><caption class="sr-only">Contract and initial accounting comparison</caption><thead><tr><th scope="col">Case / asset</th><th scope="col">Contract</th><th scope="col">Lessor model</th><th scope="col">Lessor initial receivable / asset</th><th scope="col">Lessee liability</th><th scope="col">Lessee ROU asset</th></tr></thead><tbody>'+summaryCases.map(c=>'<tr><th scope="row">Case '+c.id+'<br>'+esc(c.asset)+'</th><td>'+c.assumptions.years+' years<br>'+esc(fmt(c.assumptions.rental))+' / year<br>'+esc(c.assumptions.paymentTiming==='beginning'?'Beginning of year':'End of year')+'</td><td>'+esc(c.classification)+'</td><td>'+esc(summaryMoney(summaryInitial(c)))+'</td><td>'+esc(summaryMoney(c.amounts.liabilityAfterCommencement))+'</td><td>'+esc(summaryMoney(c.amounts.rouAssetAtCommencement))+'</td></tr>').join('')+'</tbody></table></div><h2>Lead the discussion</h2><ol>'+DEBRIEF_QUESTIONS.map(q=>'<li>'+esc(q)+'</li>').join('')+'</ol>';
+ }else{
+  const c=summaryCases[index],a=c.amounts,t=c.assumptions,finance=c.classification.startsWith('Finance');
+  $('caseSummaryTitle').textContent='Case '+c.id+' · '+c.asset;
+  target.innerHTML='<p><b>'+esc(c.manufacturer)+'</b> ↔ <b>'+esc(c.lessee)+'</b></p><p class="notice"><b>'+esc(c.classification)+'.</b> '+esc(c.rationale)+'</p><div class="card"><h2>Contract at a glance</h2><p>'+t.years+'-year lease · '+t.usefulLife+'-year useful life · '+esc(fmt(t.rental))+' annual payment · '+esc(t.paymentTiming==='beginning'?'paid at the beginning of each year':'paid at each year-end')+' · '+esc((t.annualRate*100).toFixed(0))+'% annual rate</p>'+summaryMetrics([['Fair value',t.fairValue],['Manufacturer carrying cost',t.carryingCost],['Unguaranteed residual at lease end',t.unguaranteedResidual],['Cash paid / received at commencement',a.cashAtCommencement]])+'</div><div class="case-grid"><article class="card"><h2>Lessor</h2>'+summaryMetrics(finance?[['Initial finance receivable after cash',a.liabilityAfterCommencement],['Sales revenue at commencement',a.lessorRevenue],['Cost of sales',a.lessorCostOfSales],['Selling profit at commencement',a.lessorSellingProfit],['Year 1 finance income',a.lessorFinanceIncomeYear1],['Year 1 closing receivable',a.lessorReceivableYear1End]]:[['Underlying asset retained at commencement',t.carryingCost],['Year 1 rental income',a.lessorOperatingRentalIncomeYear1],['Year 1 depreciation',a.lessorDepreciationYear1],['Year 1 closing underlying asset',a.lessorUnderlyingAssetYear1End],['Selling profit at commencement',0]])+'</article><article class="card"><h2>Lessee · ROU model</h2>'+summaryMetrics([['Initial liability after cash',a.liabilityAfterCommencement],['Initial ROU asset',a.rouAssetAtCommencement],['Year 1 interest expense',a.year1Interest],['Year 1 ROU depreciation',a.rouDepreciationYear1],['Year 1 closing liability',a.year1EndLiability],['Year 1 closing ROU asset',a.rouAssetAtYear1End]])+'</article></div><div class="notice"><h2>Key discussion point</h2><p>'+esc(misconception(c.id))+'</p></div>';
+ }
+ $('caseSummaryTitle').focus();
+}
+$('caseSummaryBtn').onclick=()=>busy($('caseSummaryBtn'),async()=>{
+ const current=adminGeneration;
+ const result=await api('admin/answer-keys',undefined,true);
+ if(current!==adminGeneration)return;
+ summaryCases=result.cases;view('caseSummary');renderCaseSummary();
+});
+$('closeCaseSummary').onclick=()=>{view('admin');$('caseSummaryBtn').focus();};
+$('summaryOverview').onclick=()=>renderCaseSummary();
+$('summaryPrevious').onclick=()=>{if(summaryIndex!==null&&summaryIndex>0)renderCaseSummary(summaryIndex-1);};
+$('summaryNext').onclick=()=>{if(summaryIndex!==null&&summaryIndex<summaryCases.length-1)renderCaseSummary(summaryIndex+1);};
 
 $('discussionBtn').onclick=()=>busy($('discussionBtn'),async()=>{
   const r=await api('admin/discussion',undefined,true);$('discussion').classList.remove('hidden');

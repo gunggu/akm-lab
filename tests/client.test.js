@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { validateWorksheet, selectSavedWork, comparisonRows } from '../public/worksheet.js';
 import {studentPrompt, misconception, DEBRIEF_QUESTIONS} from '../public/pedagogy.js';
+import {CASES} from '../worker.js';
+import {buildInstructorGuide} from '../instructor-guide.js';
 
 // A deliberately small DOM facade tests request/state lifecycle, not browser layout.
 function client(fetchImpl, timers={setTimeout,clearTimeout}) {
@@ -11,6 +13,7 @@ function client(fetchImpl, timers={setTimeout,clearTimeout}) {
   class Element {
     constructor(){this.value='';this.disabled=false;this.dataset={};this.children=[];this.attributes={};this.classList={toggle(){},add(){},remove(){}};this.textContent='';}
     addEventListener(){}
+    focus(){}
     setAttribute(k,v){this.attributes[k]=v;}
     removeAttribute(k){delete this.attributes[k];}
     querySelector(){return new Element();}
@@ -23,7 +26,7 @@ function client(fetchImpl, timers={setTimeout,clearTimeout}) {
   for(const field of ['classification','pv','firstInterest','rouAsset','reason','statementImpact','reflection'])work.fields.set(field,new Element());
   work.elements={namedItem:key=>work.fields.get(key)};
   const session=new Map();
-  const context=vm.createContext({document:{getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows,studentPrompt,misconception,DEBRIEF_QUESTIONS});
+  const context=vm.createContext({document:{body:new Element(),querySelectorAll:()=>[],getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows,studentPrompt,misconception,DEBRIEF_QUESTIONS});
   const code=readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/^import[^\n]*\n/gm,'');
   vm.runInContext(code,context);
   return {elements,run:code=>vm.runInContext(code,context)};
@@ -50,4 +53,20 @@ test('timeout gives recovery guidance and does not automatically retry a command
 });
 test('changing views clears stale instructor messages',()=>{
   const c=client(()=>{});c.run("msg('Refresh dashboard first.');view('gate');");assert.equal(c.elements.get('message').textContent,'');
+});
+test('case-summary overview includes all five cases and distinguishes Case 3 cash timing',()=>{
+  const c=client(()=>{});c.run('summaryCases='+JSON.stringify(CASES.map(buildInstructorGuide))+';renderCaseSummary();');
+  const content=c.elements.get('caseSummaryContent').innerHTML;
+  for(const id of [1,2,3,4,5])assert.ok(content.includes('Case '+id));
+  assert.ok(content.replace(/[.,]/g,'').includes('198881998'));assert.ok(content.replace(/[.,]/g,'').includes('308881998'));
+  assert.equal(c.elements.get('summaryPrevious').disabled,true);
+  assert.equal(c.elements.get('summaryNext').disabled,true);
+});
+test('single-case discussion shows both roles and navigation, then clears on instructor invalidation',()=>{
+  const c=client(()=>{});c.run('summaryCases='+JSON.stringify(CASES.map(buildInstructorGuide))+';renderCaseSummary(2);');
+  const content=c.elements.get('caseSummaryContent').innerHTML;
+  assert.ok(content.includes('Lessor'));assert.ok(content.includes('Lessee'));assert.ok(content.replace(/[.,]/g,'').includes('58881998'));
+  assert.equal(c.elements.get('summaryPrevious').disabled,false);assert.equal(c.elements.get('summaryNext').disabled,false);
+  c.run('clearReport();');assert.equal(c.run('summaryCases.length'),0);
+  assert.equal(c.elements.get('caseSummaryBtn').disabled,true);
 });

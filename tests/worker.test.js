@@ -118,6 +118,15 @@ test('discussion-summary source is instructor-only and contains five cases, not 
   assert.equal(response.body.cases[2].amounts.rouAssetAtCommencement,308881998);
   assert.equal(response.body.students,undefined);
 });
+test('operating lessor submits no commencement entry without inventing debit/credit lines',async()=>{
+  const p=await pair();p.env.DB.sqlite.exec('UPDATE students SET case_id=2; UPDATE interactions SET case_id=2');
+  const data={...answer('lessor'),classification:'Operating lease',pv:320000000,firstInterest:0,omitCommencement:true,commencementReason:'Asset already carried as equipment; no cash, costs or reclassification on commencement.',journal:JSON.stringify([{event:'Year 1',account:'Cash',side:'Debit',amount:65000000},{event:'Year 1',account:'Rental income',side:'Credit',amount:65000000},{event:'Year 1',account:'Depreciation expense',side:'Debit',amount:32000000},{event:'Year 1',account:'Accumulated depreciation',side:'Credit',amount:32000000}])};
+  assert.equal((await request(p.env,'/api/submit',{token:p.lessor,data:{data:{...data,commencementReason:''}}})).status,400);
+  assert.equal((await request(p.env,'/api/submit',{token:p.lessor,data:{data}})).status,200);
+  const saved=(await request(p.env,'/api/me',{token:p.lessor})).body.submission.data;
+  assert.equal(saved.omitCommencement,true);assert.equal(JSON.parse(saved.journal).every(line=>line.event==='Year 1'),true);
+  assert.equal((await request(p.env,'/api/submit',{token:p.lessee,data:{data:{...data,classification:'Lessee right-of-use model',rouAsset:164534153}}})).status,400);
+});
 test('54 attendees allocate exactly 27 lessors and 27 lessees with paired case quotas',async()=>{
   const env=await setup();
   for(let i=0;i<54;i++)env.DB.sqlite.prepare("INSERT INTO students(niu,name,pin_hash,role,case_id) VALUES(?,?,?,'lessor',1)").run(String(9100+i),'Disposable attendee '+i,'not-a-login-fixture');

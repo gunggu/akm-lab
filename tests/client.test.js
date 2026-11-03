@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { validateWorksheet, selectSavedWork, comparisonRows } from '../public/worksheet.js';
+import { validateWorksheet, selectSavedWork, comparisonRows, canOmitCommencement } from '../public/worksheet.js';
 import {studentPrompt, misconception, DEBRIEF_QUESTIONS} from '../public/pedagogy.js';
 import {CASES} from '../worker.js';
 import {buildInstructorGuide} from '../instructor-guide.js';
@@ -24,9 +24,11 @@ function client(fetchImpl, timers={setTimeout,clearTimeout}) {
   for(const[,id]of html.matchAll(/\bid="([^"]+)"/g))elements.set(id,new Element());
   const work=elements.get('work');work.fields=new Map();
   for(const field of ['classification','pv','firstInterest','rouAsset','reason','statementImpact','reflection'])work.fields.set(field,new Element());
+  work.fields.set('omitCommencement',elements.get('omitCommencement'));work.fields.get('omitCommencement').type='checkbox';
+  work.fields.set('commencementReason',elements.get('commencementReason'));
   work.elements={namedItem:key=>work.fields.get(key)};
   const session=new Map();
-  const context=vm.createContext({document:{body:new Element(),querySelectorAll:()=>[],getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows,studentPrompt,misconception,DEBRIEF_QUESTIONS});
+  const context=vm.createContext({document:{body:new Element(),querySelectorAll:()=>[],getElementById:id=>{assert.ok(elements.has(id),id);return elements.get(id);}},location:{pathname:'/lease-lab'},history:{replaceState(){}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},window:{addEventListener(){}},setTimeout:timers.setTimeout,clearTimeout:timers.clearTimeout,AbortController,fetch:fetchImpl,Intl,URL,Blob,confirm:()=>false,validateWorksheet,selectSavedWork,comparisonRows,canOmitCommencement,studentPrompt,misconception,DEBRIEF_QUESTIONS});
   const code=readFileSync(new URL('../public/app.js',import.meta.url),'utf8').replace(/^import[^\n]*\n/gm,'');
   vm.runInContext(code,context);
   return {elements,run:code=>vm.runInContext(code,context)};
@@ -53,6 +55,22 @@ test('timeout gives recovery guidance and does not automatically retry a command
 });
 test('changing views clears stale instructor messages',()=>{
   const c=client(()=>{});c.run("msg('Refresh dashboard first.');view('gate');");assert.equal(c.elements.get('message').textContent,'');
+});
+test('saved no-entry declaration restores for operating lessor and resets when model changes',()=>{
+  const c=client(()=>{});
+  c.run("snapshot={user:{role:'lessor'},case:{due:'end'}};populate({classification:'Operating lease',omitCommencement:true,commencementReason:'No commencement transaction.'});");
+  assert.equal(c.elements.get('omitCommencement').checked,true);assert.equal(c.elements.get('commencementReason').disabled,false);
+  assert.equal(c.run('omitsCommencement()'),true);
+  c.run("$('work').elements.namedItem('classification').value='Finance lease';syncCommencement();");
+  assert.equal(c.elements.get('omitCommencement').checked,false);assert.equal(c.elements.get('commencementReason').disabled,true);
+});
+test('no-entry choice disables hidden commencement controls and restores them when unchecked',()=>{
+  const c=client(()=>{});
+  c.run("snapshot={user:{role:'lessor'},case:{due:'end'}};$('work').elements.namedItem('classification').value='Operating lease';$('omitCommencement').checked=true;const originalControl={disabled:false};$('journalRows').children=[{querySelector:()=>({value:'Commencement'}),querySelectorAll:()=>[originalControl],classList:{toggle(){}}}];syncCommencement();");
+  assert.equal(c.run('originalControl.disabled'),true);
+  c.run("$('omitCommencement').checked=false;syncCommencement();");
+  assert.equal(c.run('originalControl.disabled'),false);
+  assert.equal(c.run("$('journalRows').children.length"),1);
 });
 test('case-summary overview includes all five cases and distinguishes Case 3 cash timing',()=>{
   const c=client(()=>{});c.run('summaryCases='+JSON.stringify(CASES.map(buildInstructorGuide))+';renderCaseSummary();');

@@ -1,4 +1,4 @@
-import { validateWorksheet, selectSavedWork, comparisonRows } from './worksheet.js';
+import { validateWorksheet, selectSavedWork, comparisonRows, canOmitCommencement } from './worksheet.js';
 import {studentPrompt, misconception, DEBRIEF_QUESTIONS} from './pedagogy.js';
 
 const $ = id => document.getElementById(id);
@@ -68,11 +68,20 @@ function syncControls() {
   $('submitBtn').disabled = submitting || !!snapshot?.submission || snapshot?.submissionsOpen === false || !!$('submitBtn').dataset.pending;
   $('saveDraft').disabled = !!snapshot?.submission || snapshot?.submissionsOpen === false || !!$('saveDraft').dataset.pending;
 }
+function omitsCommencement(){return $('omitCommencement').checked&&canOmitCommencement(snapshot?.user?.role,$('work').elements.namedItem('classification').value,snapshot?.case);}
+function syncCommencement(){
+ const eligible=canOmitCommencement(snapshot?.user?.role,$('work').elements.namedItem('classification').value,snapshot?.case);
+ $('commencementChoice').classList.toggle('hidden',!eligible);
+ if(!eligible)$('omitCommencement').checked=false;
+ const omit=omitsCommencement();
+ $('commencementReasonBox').classList.toggle('hidden',!omit);$('commencementReason').disabled=!omit;$('commencementReason').required=omit;
+ for(const row of $('journalRows').children){const hidden=omit&&row.querySelector('.event').value==='Commencement';row.classList.toggle('hidden',hidden);for(const control of row.querySelectorAll('input,select,button'))control.disabled=hidden;}
+}
 function worksheet() {
-  return {...Object.fromEntries(new FormData($('work'))), journal:JSON.stringify(journal())};
+  return {...Object.fromEntries(new FormData($('work'))), omitCommencement:omitsCommencement(), journal:JSON.stringify(journal())};
 }
 function journal() {
-  return [...$('journalRows').children].map(row => ({event:row.querySelector('.event').value, account:row.querySelector('.account').value, side:row.querySelector('.side').value, amount:Number(row.querySelector('.amount').value)}));
+  return [...$('journalRows').children].filter(row=>!(omitsCommencement()&&row.querySelector('.event').value==='Commencement')).map(row => ({event:row.querySelector('.event').value, account:row.querySelector('.account').value, side:row.querySelector('.side').value, amount:Number(row.querySelector('.amount').value)}));
 }
 function lineRow(data = {}) {
   const row = document.createElement('tr'), id = ++journalSequence;
@@ -84,13 +93,13 @@ function lineRow(data = {}) {
 function balance() {
   const totals = {};
   for (const line of journal()) { const sum = totals[line.event] ??= {Debit:0,Credit:0}; sum[line.side] += line.amount; }
-  $('balance').textContent = Object.entries(totals).map(([event, sum]) => event+': Dr '+fmt(sum.Debit)+' / Cr '+fmt(sum.Credit)+(sum.Debit > 0 && sum.Credit > 0 && Math.abs(sum.Debit-sum.Credit) <= 1 ? ' • balanced' : ' • incomplete or unbalanced')).join(' | ');
+  $('balance').textContent = (omitsCommencement()?'Commencement: no entry declared | ':'')+Object.entries(totals).map(([event, sum]) => event+': Dr '+fmt(sum.Debit)+' / Cr '+fmt(sum.Credit)+(sum.Debit > 0 && sum.Credit > 0 && Math.abs(sum.Debit-sum.Credit) <= 1 ? ' • balanced' : ' • incomplete or unbalanced')).join(' | ');
 }
 function populate(data) {
   if (!data) return;
-  for (const [key,value] of Object.entries(data)) { const el = $('work').elements.namedItem(key); if (el) el.value = value; }
+  for (const [key,value] of Object.entries(data)) { const el = $('work').elements.namedItem(key); if (el) {if(el.type==='checkbox')el.checked=value===true||value==='on';else el.value = value;} }
   if (data.journal) try { const lines = JSON.parse(data.journal); if (Array.isArray(lines)) { $('journalRows').replaceChildren(); lines.forEach(lineRow); } } catch { msg('Saved journal could not be read. Ask your instructor before submitting.'); }
-  balance();
+  syncCommencement();balance();
 }
 function queueDraft() {
   if (!snapshot || snapshot.waiting || snapshot.submission || !snapshot.submissionsOpen || submitting) return;
@@ -141,7 +150,7 @@ async function load() {
       select.innerHTML = '<option value="">Choose…</option>'+(lessor?'<option>Finance lease</option><option>Operating lease</option>':'<option>Lessee right-of-use model</option>');
       $('rouField').classList.toggle('hidden',lessor); $('work').elements.namedItem('rouAsset').disabled=lessor;
       for (const event of ['Commencement','Year 1']) for (const side of ['Debit','Credit']) lineRow({event,side});
-      const saved = selectSavedWork(s.submission,s.draft); populate(saved.data); loadedIdentity=identity;
+      const saved = selectSavedWork(s.submission,s.draft); populate(saved.data);syncCommencement();balance(); loadedIdentity=identity;
       $('recoverDraft').classList.toggle('hidden',!saved.preservedDraft);
       $('recoverDraft').onclick=()=>download('lease-lab-preserved-draft.json',JSON.stringify(saved.preservedDraft,null,2),'application/json');
       $('submissionNotice').classList.toggle('hidden',!s.submission);
@@ -182,11 +191,11 @@ for(const form of ['register','login','recover'])$(form).onsubmit=event=>{
     const result=await api(form,data);resetIdentity();token=result.token;sessionStorage.setItem('leaseToken',token);await load();
   });
 };
-$('work').addEventListener('input',()=>{balance();queueDraft();});
-$('addLine').onclick=()=>{lineRow();queueDraft();};
+$('work').addEventListener('input',()=>{syncCommencement();balance();queueDraft();});
+$('addLine').onclick=()=>{lineRow(omitsCommencement()?{event:'Year 1'}:{});syncCommencement();balance();queueDraft();};
 $('saveDraft').onclick=()=>busy($('saveDraft'),saveDraft);
 $('work').onsubmit=event=>{
-  event.preventDefault(); const data=worksheet(),error=validateWorksheet(data,snapshot.user.role);
+  event.preventDefault(); const data=worksheet(),error=validateWorksheet(data,snapshot.user.role,snapshot.case);
   if(error){msg(error);$('message').focus();return;}
   if(!confirm('Submit your first independent answer? It will be locked and cannot be replaced.'))return;
   busy($('submitBtn'),async()=>{

@@ -52,3 +52,7 @@ The class code must not be used as PIN recovery proof. Students who forget their
 ## Discussion case summary
 
 After loading the authenticated instructor dashboard, choose **Case summary · Discussion**. The projection view hides the instructor controls and contains no student names, NIUs, credentials or submissions. Start with the all-five-case comparison, then choose Case 1–5 or Previous/Next for side-by-side lessor and lessee benchmarks, contract terms, Year 1 effects and discussion points. **Back to instructor** exits presentation mode. The summary uses the existing instructor-only worked-solutions endpoint; solution data is not embedded in the public page.
+
+## Operating-lessor commencement treatment
+
+For a student selecting Operating lease as lessor under the current end-of-year payment assumptions, the worksheet offers **No journal entry at commencement**. A reason is required: the underlying asset must already be in the appropriate account, with no commencement cash, initial costs or reclassification to record. The option hides and disables commencement rows without destroying the in-tab entries; unchecking restores them. Drafts and submissions retain the no-entry declaration and explanation, which also appears in peer comparisons. Year 1 journals remain mandatory and must balance. Finance-lessor and lessee commencement entries cannot be waived. Classification and accounting correctness remain instructor-assessed; this is structural validation, not an automatic grade.

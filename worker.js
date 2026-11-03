@@ -108,10 +108,10 @@ export default {async fetch(request,env){
   url.pathname=url.pathname.slice(0,-1);
   return new Response(null,{status:308,headers:{location:url.toString()}});
  }
- if(path==="/api/health")return json({service:"lease-lab",version:"v2.3",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
+ if(path==="/api/health")return json({service:"lease-lab",version:"v2.3.1",route:"ok",readiness:"use-api-ready",build:env.BUILD_ID||"unreported"});
  if(path==="/api/ready"){
   const ready=await readiness(env);
-  return json({service:"lease-lab",version:"v2.3",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
+  return json({service:"lease-lab",version:"v2.3.1",ready:ready.ok,reason:ready.reason,build:env.BUILD_ID||"unreported"},ready.ok?200:503);
  }
  if(path==="/"||path==="/admin"||CLIENT_ASSETS.has(path)){
   if(!["GET","HEAD"].includes(request.method))return fail("Reload before submitting. The application script may not have loaded.",405);
@@ -314,7 +314,7 @@ export default {async fetch(request,env){
   if(await setting(env,"submissions")==="closed")return fail("Submissions closed.",403);
   const confirmed=await env.DB.prepare("SELECT id FROM interactions WHERE status='confirmed' AND (lessor_niu=? OR lessee_niu=?)").bind(user.niu,user.niu).first();
   if(!confirmed)return fail("You need at least one counterpart-confirmed interaction.",409);
-  const data=body.data,error=validateWorksheet(data,user.role);
+  const data=body.data,error=validateWorksheet(data,user.role,c);
   if(error)return fail(error);
   const writes=await env.DB.batch([
    env.DB.prepare("INSERT OR IGNORE INTO submissions(niu,data) VALUES(?,?)").bind(user.niu,JSON.stringify({...data,worksheetVersion:"v2.1"})),

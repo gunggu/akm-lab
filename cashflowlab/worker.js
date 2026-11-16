@@ -100,7 +100,15 @@ export default {async fetch(req,env){
      for(const key of result.diagnostics)diagnostics[`${a.method}:${key}`]=(diagnostics[`${a.method}:${key}`]||0)+1;
      for(const pattern of result.patterns)diagnostics[pattern]=(diagnostics[pattern]||0)+1;
     }
-    return json({session:sessionData(s),participants:attempts.length,submitted:submitted.length,direct:attempts.filter(a=>a.method==='direct').length,indirect:attempts.filter(a=>a.method==='indirect').length,average:submitted.length?Math.round(submitted.reduce((total,a)=>total+a.score,0)/submitted.length*10)/10:null,diagnostics,
+    const groupMetrics={};
+    for(const method of ['direct','indirect']){
+     const team=attempts.filter(a=>a.method===method),finished=team.filter(a=>a.submitted_at);
+     const reported=finished.map(a=>{const value=JSON.parse(a.answers)?.totals?.operating;return value!==''&&value!==null&&value!==undefined&&Number.isFinite(Number(value))?Number(value):null;}).filter(v=>v!==null).sort((a,b)=>a-b);
+     const median=reported.length?(reported.length%2?reported[(reported.length-1)/2]:(reported[reported.length/2-1]+reported[reported.length/2])/2):null;
+     const correct=reported.filter(v=>Math.abs(v-c.operating)<=0.001).length;
+     groupMetrics[method]={participants:team.length,submitted:finished.length,reported:reported.length,medianOperating:median,correctOperating:correct,averageScore:finished.length?Math.round(finished.reduce((t,a)=>t+a.score,0)/finished.length*10)/10:null};
+    }
+    return json({session:sessionData(s),participants:attempts.length,submitted:submitted.length,direct:attempts.filter(a=>a.method==='direct').length,indirect:attempts.filter(a=>a.method==='indirect').length,average:submitted.length?Math.round(submitted.reduce((total,a)=>total+a.score,0)/submitted.length*10)/10:null,groupMetrics,diagnostics,
      attempts:attempts.map(a=>({niu:a.niu,name:a.name,method:a.method,score:a.score,submittedAt:a.submitted_at,updatedAt:a.updated_at,sectionScores:a.submitted_at?scoreSubmission(c,a.method,JSON.parse(a.answers)).sums:null})),
      instructorKey:s?{case:c,correct:{direct:c.direct,indirect:c.indirect,common:c.common,totals:{operating:c.operating,investing:c.investing,financing:c.financing,cash1:c.d.cash1}}}:null});
    }

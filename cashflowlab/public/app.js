@@ -90,6 +90,15 @@ function renderAdmin(){app.replaceChildren(hero('Instructor comparison dashboard
  app.append(top);
  const n=$$('div','alert hidden','');n.id='notice';app.append(n);
  const stats=el('div',{class:'cards three section'},metric('Registered participants',dashboard.participants),metric('Submitted',dashboard.submitted),metric('Class average',dashboard.average===null?'—':dashboard.average+' /100'));app.append(stats);
+ const groupCompare=el('div',{class:'cards two section'});
+ for(const method of ['direct','indirect']){
+  const g=dashboard.groupMetrics?.[method]||{participants:0,submitted:0,reported:0,medianOperating:null,correctOperating:0,averageScore:null};
+  const content=el('div',{class:'card'},title((method==='direct'?'Direct':'Indirect')+' method · submitted results','Student-reported operating cash flows, not the instructor answer key.'));
+  content.append($$('div','stat-head','Median operating cash flow (€000)'),$$('div','panel-metric',g.medianOperating===null?'Not yet reported':money(g.medianOperating)));
+  content.append($$('div','sub',`Reported: ${g.reported} · Correct totals: ${g.correctOperating} · Submitted: ${g.submitted}/${g.participants} · Average score: ${g.averageScore??'—'}`));
+  groupCompare.append(content);
+ }
+ app.append(groupCompare);
  const comparison=el('div',{class:'cards two section'});
  const left=el('div',{class:'card'},title('Team allocation','Balanced by students who actually join the session.'));left.append(barRow('Direct',dashboard.direct,dashboard.participants||1,false),barRow('Indirect',dashboard.indirect,dashboard.participants||1,true));comparison.append(left);
  const right=el('div',{class:'card'},title('Method-specific error patterns','Counts reflect actual submitted answers; no synthetic class statistics.'));
@@ -100,7 +109,8 @@ function renderAdmin(){app.replaceChildren(hero('Instructor comparison dashboard
  const tables=el('div',{class:'cards two section'});for(const [label,obj]of [['Direct method',correct.correct.direct],['Indirect adjustments',correct.correct.indirect],['Common investing / financing',correct.correct.common],['Totals',correct.correct.totals]]){
   const box=el('div',{class:'card'},title(label));const t=el('table',{class:'tbl key-tbl'},el('thead',{},el('tr',{},el('th',{},'Line'),el('th',{},'€000'))));const body=el('tbody');Object.entries(obj).forEach(([k,v])=>body.append(el('tr',{},el('td',{},k.replace(/([A-Z])/g,' $1')),el('td',{},money(v)))));t.append(body);box.append(el('div',{class:'table-wrap'},t));tables.append(box);
  }details.append(tables);details.append(el('div',{class:'alert success'},`The €${money(correct.case.d.ppeNoncashLease*1000)} machinery finance lease and €${money(correct.case.d.ociRevaluation*1000)} land revaluation are NONCASH transactions. Neither belongs in current-year cash totals.`));panel.append(details);app.append(panel);}
- const roster=el('div',{class:'card section'},title('Participation and scoring','Identities appear in the instructor-only dashboard. Project anonymized group figures, not student names.'));
+ const roster=el('div',{id:'private-roster',class:'card section hidden'},title('Participation and scoring','Private instructor view — never project student names or NIUs.'));
+ const toggle=btn('Show private student roster',()=>{roster.classList.toggle('hidden');toggle.textContent=roster.classList.contains('hidden')?'Show private student roster':'Hide private student roster'},'btn ghost section');app.append(toggle);
  const table=el('table',{class:'tbl'},el('thead',{},el('tr',{},...['NIU','Student','Method','Status','Score'].map(h=>el('th',{},h)))));const tbody=el('tbody');(dashboard.attempts||[]).forEach(a=>tbody.append(el('tr',{},el('td',{},a.niu),el('td',{},a.name),el('td',{},a.method),el('td',{},a.submittedAt?'Submitted':'Draft'),el('td',{},a.score??'—'))));table.append(tbody);roster.append(el('div',{class:'table-wrap'},table));app.append(roster);
  clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(document.visibilityState==='visible'&&adminKey)loadDashboard().catch(()=>{})},20000);
 }

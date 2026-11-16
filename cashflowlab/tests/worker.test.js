@@ -22,14 +22,14 @@ test('Shared login, privacy, balanced allocation, server start, immutable final 
  assert.equal((await call(env,'/api/admin/new','POST',{variant:0},{})).status,403);
  const sessions=await call(env,'/api/admin/new','POST',{variant:0},instr);assert.equal(sessions.session.status,'pending');
  const tokens=[];for(let i=1;i<=10;i++){const niu=String(1000+i);const login=await call(env,'/api/login','POST',{niu,pin:'password'+i});assert.equal(login.status,200);tokens.push(login.token);const joined=await call(env,'/api/join','POST',{}, {authorization:'Bearer '+login.token});assert.equal(joined.status,200);}
- let panel=await call(env,'/api/admin/dashboard','GET',null,instr);assert.equal(panel.direct,5);assert.equal(panel.indirect,5);assert.equal(panel.participants,10);
+ let panel=await call(env,'/api/admin/dashboard','GET',null,instr);assert.equal(panel.direct,5);assert.equal(panel.indirect,5);assert.equal(panel.participants,10);assert.equal(panel.groupMetrics.direct.participants,5);assert.equal(panel.groupMetrics.indirect.participants,5);
  const auth={authorization:'Bearer '+tokens[0]};let state=await call(env,'/api/state','GET',null,auth);assert.equal(state.status,200);assert.equal(state.score,null);assert.equal(state.case.notes.length,7);assert.equal(state.case.operating,undefined);assert.equal(state.case.d,undefined);
  assert.equal((await call(env,'/api/save','POST',{answers:{}},auth)).status,409);
  await call(env,'/api/admin/start','POST',{},instr);
  const x=await call(env,'/api/save','POST',{answers:{operating:{}}},auth);assert.equal(x.saved,true);
  const finish=await call(env,'/api/submit','POST',{answers:{}},auth);assert.equal(finish.submitted,true);assert.equal((await call(env,'/api/submit','POST',{answers:{}},auth)).status,409);
  state=await call(env,'/api/state','GET',null,auth);assert.equal(state.score,null,'Scores are embargoed during running period');
- panel=await call(env,'/api/admin/dashboard','GET',null,instr);assert.equal(panel.submitted,1);assert.equal(panel.attempts[0].score,0);
+ panel=await call(env,'/api/admin/dashboard','GET',null,instr);assert.equal(panel.submitted,1);assert.equal(panel.attempts[0].score,0);assert.equal(panel.groupMetrics.direct.submitted+panel.groupMetrics.indirect.submitted,1);
  await call(env,'/api/admin/close','POST',{},instr);state=await call(env,'/api/state','GET',null,auth);assert.equal(state.score,0);assert(state.breakdown.length>10);
  const next=await call(env,'/api/admin/new','POST',{variant:2},instr);assert.equal(next.session.variant,2);assert.equal(next.session.status,'pending');
  assert.equal((await call(env,'/api/join','POST',{},auth)).status,200);

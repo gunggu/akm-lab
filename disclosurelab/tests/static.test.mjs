@@ -15,7 +15,7 @@ test('all scripts are syntactically valid',()=>{
 });
 test('student-facing source contains evidence, workpaper and export but no answer or grading engine',()=>{
  for(const id of ['id:\'A\'','id:\'B\'','id:\'C\'','id:\'D\'','id:\'E\'','id:\'F\''])assert.ok(student.includes(id));
- for(const id of ['w1','w2','w3','w4','w5','w6','w7'])assert.ok(student.includes("id:'"+id+"'"));
+ for(const id of ['w1','w2','w3','w4','w5'])assert.ok(student.includes("id:'"+id+"'"));
  for(const banned of ['answerKey','correctAnswer','expectedAnswer','modelSolution','scoreSubmission','gradeSubmission','chatgpt','ignore previous instructions','as an ai','prompt injection','solution:']){
   assert.ok(!student.toLowerCase().includes(banned.toLowerCase()),banned);
  }
@@ -23,13 +23,22 @@ test('student-facing source contains evidence, workpaper and export but no answe
  assert.ok(!/\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b/.test(student));
 });
 test('browser input is handled as data',()=>{
- assert.ok(student.includes('textarea.value'));
+ assert.ok(student.includes('function getInputValues()'));assert.ok(student.includes('function validStructuredResponse(q)'));
  assert.ok(student.includes('JSON.stringify(payload,null,2)'));
  assert.ok(!/\.innerHTML\s*=\s*[^;]*responses\b/.test(student));
- assert.ok(review.includes('p.textContent=safe(r.responses[key]'));
+ assert.ok(review.includes('value.textContent=safe(r.responses[key]'));
 });
 test('reviewer checks the file format and limits file size',()=>{
  assert.ok(review.includes("file.size>300000"));
  assert.ok(review.includes('function valid(o)'));
  assert.ok(review.includes('csvCell'));
+});
+
+test('five assessment-specific workpapers and schema v2 are present',()=>{
+ assert.equal((student.match(/id:'w[1-5]',title:/g)||[]).length,5);
+ assert.ok(student.includes('version:2,caseVersion:CASE_VERSION'));
+ assert.ok(student.includes('function preserveEarlierDrafts()'));
+ assert.ok(student.includes('function restoreWork(file)'));
+ assert.ok(review.includes('o.version===2'));
+ assert.ok(student.includes('getResponses()'));
 });

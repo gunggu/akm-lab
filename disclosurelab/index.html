@@ -223,6 +223,7 @@ async function restoreWork(file){
  persist();renderIdentity();showNotice('Workpaper restored on this device. Review the student details before export.',false);
 }
 function reset(){if(!window.confirm('Clear the student details and all locally saved responses on this device? Export a copy first if required.'))return;try{localStorage.removeItem(STORAGE)}catch(_){}location.reload()}
+window.addEventListener('pagehide',()=>{if(state){clearTimeout(savePending);collect();}});
 $('#begin').onclick=start;
 $('#backup').onclick=makeBackup;
 $('#restore').onclick=()=>$('#restore-file').click();

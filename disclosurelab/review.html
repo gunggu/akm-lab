@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>DisclosureLab · Workpaper Review</title><style>
+:root{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#1a3143;background:#f3f6f9;--navy:#123c5e;--line:#d9e3e9;--muted:#657b89}*{box-sizing:border-box}body{margin:0}.shell{max-width:1180px;margin:auto;padding:25px 20px 65px}.hero{background:var(--navy);border-radius:18px;color:#fff;padding:24px 30px}.hero h1{margin:4px 0}.hero p{color:#d4e4ee;line-height:1.5}h2{margin-top:0}.grid{display:grid;grid-template-columns:330px 1fr;gap:18px;margin-top:20px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 5px 18px #102b4810}input,button{font:inherit}input[type=file]{max-width:100%;padding:10px;background:#f4f8fa;border-radius:9px;border:1px solid var(--line)}button{border:0;border-radius:9px;background:var(--navy);color:white;padding:11px 14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.alt{background:white;color:var(--navy);border:1px solid var(--line)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.muted{color:var(--muted);font-size:13px;line-height:1.5}.error{color:#a13b36}.list{display:grid;gap:8px}.item{display:block;background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:left;color:#173c56;width:100%}.item[aria-current=true]{background:#e6f1f0;border-color:#4e9991}.item .mini{display:block;font-weight:400;color:#617887;margin-top:5px;font-size:12px}.record-count{background:#edf4f6;border-radius:7px;padding:10px 13px;font-size:12px;margin:11px 0;color:#405e6d}.warn{background:#fff7e6;padding:10px;border:1px solid #e6d6b4;border-radius:7px}.answer{border-top:1px solid #e4ebef;margin-top:15px;padding-top:13px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.62;font-size:14px}.answer h3{margin:0 0 7px;font-size:15px;color:#163c58}.status{font-size:13px;margin-top:12px}.banner{background:#fff8e8;border-left:4px solid #e4ab36;padding:10px 13px;margin:15px 0;color:#705b2b;font-size:13px}@media(max-width:830px){.grid{grid-template-columns:1fr}}@media print{.hero,.actions,input,.list,.banner{display:none}.grid{display:block}.card{box-shadow:none}}.record-line{display:grid;grid-template-columns:230px 1fr;gap:12px;border-bottom:1px solid #e4edf1;padding:10px 0;line-height:1.55;font-size:13px}.record-line strong{font-weight:700;color:#3e5c70}.record-line>div{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:650px){.record-line{grid-template-columns:1fr;gap:3px}}</style></head><body><div class="shell"><header class="hero"><small>FEB UGM · Intermediate Accounting II · Session 13</small><h1>DisclosureLab — Workpaper Review</h1><p>Open downloaded student submissions and review the written analyses. Files are processed in this browser; nothing is uploaded.</p></header><div class="grid"><aside class="card"><h2>Import</h2><label for="files">Student JSON submissions</label><p><input id="files" type="file" multiple accept=".json,application/json"></p><div class="actions"><button id="csv" disabled>Export summary CSV</button><button id="clear" class="alt">Clear imported records</button></div><div id="status" class="status" role="status"></div><p class="banner">This is a document-review utility, not an answer checker. Student responses are not graded or interpreted automatically.</p><h2>Student records</h2><p class="muted" id="import-summary">No records imported.</p><div class="list" id="students"></div></aside><main class="card"><h2 id="record-title">Select a workpaper</h2><p id="record-info" class="muted">Import one or more student JSON files to begin reviewing.</p><div id="responses"></div></main></div></div>
+<script>
+(function(){'use strict';
+const $=s=>document.querySelector(s);
+const titles={w1:'Statement presentation and investor measure',w2:'Events after the reporting period',w3:'Operating segment worksheet',w4:'Interim accounting file',w5:'Related-party note and final review'};
+const labels={
+w1:{op:'Operating profit (€m)',pre:'Profit before financing and income taxes (€m)',pretax:'Profit before income taxes (€m)',net:'Profit for the year (€m)',reported:'Investor presentation subtotal (€m)',recon:'Reconciliation amount (€m)',tax:'Tax effect (€m)',treatment:'Communication assessment',explain:'Reporting rationale'},
+w2:{customer:'Customer matter — treatment',customeramt:'Customer — adjustment (€m)',customerevidence:'Customer — evidence',flood:'Facility — treatment',floodamt:'Facility — adjustment (€m)',floodevidence:'Facility — evidence'},
+w3:{revthreshold:'Revenue threshold (€m)',plthreshold:'Profit or loss threshold (€m)',assetthreshold:'Asset threshold (€m)',components:'Components',manufacturing:'Manufacturing systems',services:'Services',ventures:'New ventures',coverage:'External-revenue coverage (%)',bridge:'Reconciled operating result (€m)',evidence:'Calculations and judgments'},
+w4:{insurance:'Q1 insurance expense (€m)',prepaid:'Q1 insurance prepayment (€m)',tax:'Q1 income tax (€m)',annual:'Annual revenue (€m)',analysis:'Interim reporting analysis'},
+w5:{balance:'Loan balance (€m)',interest:'Interest expense (€m)',party:'Related-party note',memo:'Final review memorandum'}
+};
+const legacyTitles={w1:'Reporting overview',w2:'Transactions and disclosures',w3:'Year-end review',w4:'Operating-line assessment',w5:'Interim reporting',w6:'Investor communications',w7:'Final memorandum'};
+function flattened(v){if(typeof v==='string')return v;if(v&&typeof v==='object')return Object.entries(v).map(([key,text])=>(key==='legacyNotes'?'Previous draft notes':(Object.values(labels).find(o=>o[key])||{})[key]||key)+': '+String(text||'')).join(' | ');return ''}
+function filledCount(r){if(r.version===1)return Object.values(r.responses).filter(v=>typeof v==='string'&&v.trim()).length;return Object.values(r.responses).reduce((n,obj)=>n+Object.values(obj||{}).filter(v=>typeof v==='string'&&v.trim()).length,0)}
+const records=new Map();let active=null;
+function safe(s,max){return String(s==null?'':s).slice(0,max)}
+function show(t,isBad){$('#status').textContent=t;$('#status').className=isBad?'status error':'status'}
+function valid(o){
+ if(!o||o.type!=='feb-ugm-disclosurelab-student-workpaper'||![1,2].includes(o.version)||o.caseVersion!=='s13-merapi-2027-v1')return false;
+ if(!o.student||!/^\d{4,12}$/.test(String(o.student.niu||''))||typeof o.student.name!=='string'||o.student.name.length<3||o.student.name.length>90||typeof o.recordId!=='string'||o.recordId.length>99)return false;
+ if(!o.responses||typeof o.responses!=='object')return false;
+ if(o.version===1)return Object.keys(legacyTitles).every(k=>typeof o.responses[k]==='string'&&o.responses[k].length<=9000);
+ return Object.keys(titles).every(k=>o.responses[k]&&typeof o.responses[k]==='object'&&Object.entries(o.responses[k]).every(([key,v])=>Object.hasOwn(labels[k],key)||key==='legacyNotes')&&Object.values(o.responses[k]).every(v=>typeof v==='string'&&v.length<=9000));
+}
+function render(){
+ const list=$('#students');list.replaceChildren();
+ const niuCounts={};for(const r of records.values())niuCounts[r.student.niu]=(niuCounts[r.student.niu]||0)+1;
+ const multiple=Object.values(niuCounts).filter(n=>n>1).length;
+ $('#import-summary').textContent=records.size+' record(s) · '+Object.keys(niuCounts).length+' distinct student ID(s)'+(multiple?' · '+multiple+' repeated student ID(s)':'')+'.';
+ for(const [id,r]of records){
+  const b=document.createElement('button');b.type='button';b.className='item';
+  const title=document.createElement('strong');title.textContent=safe(r.student.name,90)+' · '+r.student.niu;
+  const detail=document.createElement('span');detail.className='mini';
+  const filled=filledCount(r);
+  detail.textContent=filled+(r.version===1?'/7 narrative sections':' fields')+' entered'+(niuCounts[r.student.niu]>1?' · Multiple records for this NIU':'');
+  b.append(title,detail);b.setAttribute('aria-current',String(active===id));
+  b.onclick=()=>{active=id;render()};list.append(b);
+ }
+ $('#csv').disabled=records.size===0;
+const r=records.get(active);const pane=$('#responses');pane.replaceChildren();if(!r){$('#record-title').textContent='Select a workpaper';$('#record-info').textContent='Import one or more student JSON files to begin reviewing.';return}$('#record-title').textContent=r.student.name+' · '+r.student.niu;$('#record-info').textContent='Record '+r.recordId+' · Exported '+safe(r.exportedAt,40);
+for(const [key,title]of Object.entries(r.version===1?legacyTitles:titles)){
+ const d=document.createElement('section');d.className='answer';const h=document.createElement('h3');h.textContent=title;d.append(h);
+ if(r.version===1){const p=document.createElement('div');p.textContent=safe(r.responses[key],9000)||'No response recorded.';d.append(p)}
+ else for(const [fid,label]of Object.entries(labels[key])){
+  const row=document.createElement('div');row.className='record-line';const name=document.createElement('strong');name.textContent=label;
+  const value=document.createElement('div');value.textContent=safe(r.responses[key]?.[fid],4000)||'Not entered';
+  row.append(name,value);d.append(row);
+ }
+ if(r.version===2&&r.responses[key]?.legacyNotes){const p=document.createElement('div');p.className='muted';p.textContent='Previous draft text: '+safe(r.responses[key].legacyNotes,9000);d.append(p)}
+ pane.append(d);
+}}
+$('#files').onchange=async e=>{let added=0,failed=0;const files=[...e.target.files].slice(0,500);for(const file of files){if(file.size>300000){failed++;continue}try{const o=JSON.parse(await file.text());if(!valid(o)){failed++;continue}if(records.has(o.recordId)){const existing=records.get(o.recordId);if(String(o.exportedAt||'')>String(existing.exportedAt||''))records.set(o.recordId,o);}else records.set(o.recordId,o);if(!active)active=o.recordId;added++}catch(_){failed++}}render();show('Imported '+added+' workpaper(s). Rejected '+failed+' file(s).',failed>0);e.target.value=''};
+function csvCell(v){let s=safe(v,9000).replace(/\r?\n/g,' ');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+$('#csv').onclick=()=>{const rows=[['NIU','Name','Record ID','Exported at','Version',...Object.values(titles)]];for(const r of records.values())rows.push([r.student.niu,r.student.name,r.recordId,r.exportedAt,r.version,...Object.keys(titles).map(k=>flattened(r.responses[k]))]);const data=rows.map(row=>row.map(csvCell).join(',')).join('\r\n');const b=new Blob(['\ufeff'+data],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='Session13_DisclosureLab_Review.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+$('#clear').onclick=()=>{records.clear();active=null;$('#files').value='';render();show('Imported records cleared from this browser tab.',false)};render();
+})();
+</script></body></html>

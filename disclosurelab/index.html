@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>DisclosureLab | Intermediate Accounting II | FEB UGM</title>
+<style>
+:root{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#162c3c;background:#f3f6f9;--navy:#113b5b;--navy2:#164f70;--teal:#087d79;--line:#d8e3e9;--muted:#617588;--gold:#daa842}
+*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}a{color:var(--navy)}
+.shell{max-width:1290px;margin:0 auto;padding:20px 22px 76px}.mast{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.mark{background:#113b5b;color:white;font-size:13px;font-weight:850;padding:13px 10px;border-radius:12px;letter-spacing:.06em}.eyebrow{color:var(--teal);text-transform:uppercase;letter-spacing:.14em;font-weight:800;font-size:11px}.brand h1{font-size:22px;letter-spacing:-.03em;margin:2px 0}.sub{color:var(--muted);font-size:13px;line-height:1.55}.hero{background:linear-gradient(118deg,#123c5e,#164e6b);color:#fff;padding:30px 35px;border-radius:20px;box-shadow:0 14px 38px #14385220}.hero h2{font-size:clamp(25px,3.8vw,39px);margin:6px 0 12px;letter-spacing:-.04em}.hero p{color:#d9eaf1;max-width:850px;line-height:1.65;margin:0}.chip{display:inline-block;border:1px solid #ffffff43;color:white;border-radius:25px;font-size:12px;padding:6px 11px;margin:12px 9px 0 0}.layout{display:grid;grid-template-columns:minmax(270px,340px) minmax(0,1fr);gap:18px;margin-top:20px;align-items:start}.card{background:#fff;border:1px solid var(--line);box-shadow:0 7px 22px #113b5b09;border-radius:15px;padding:21px}.stack{display:grid;gap:16px}.card h3{margin:0 0 10px;font-size:18px}.card h4{margin:0 0 9px;font-size:15px;color:var(--navy)}.card p{line-height:1.6}.doc{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}.doc-title{background:#edf3f6;padding:15px 18px;border-bottom:1px solid var(--line);font-weight:800;letter-spacing:.01em}.doc-body{padding:20px}.doc-body p{line-height:1.67;margin:7px 0 14px}.doc table{border-collapse:collapse;width:100%;font-size:14px}.doc th,.doc td{border-bottom:1px solid #e5edf1;padding:10px 12px;text-align:left}.doc th{background:#f7f9fa;color:#425c70}.doc td.num{text-align:right;font-variant-numeric:tabular-nums}.doc .meta{font-size:12px;text-transform:uppercase;color:#6b8090;letter-spacing:.05em}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{border:1px solid #cddbe3;border-radius:9px;background:white;color:#29485d;padding:10px 14px;font-size:13px;font-weight:750}.tab[aria-selected=true]{background:#123c5e;border-color:#123c5e;color:white}.work{display:grid;gap:13px}.work label,.login label{display:block;font-weight:800;font-size:13px;margin:10px 0 8px;color:#345267}.work textarea{width:100%;min-height:118px;resize:vertical;padding:13px;border:1px solid #c8d6de;border-radius:10px;color:#142f42;line-height:1.6;background:#fff}.login input{width:100%;padding:12px;border:1px solid #c8d6de;border-radius:9px}.login button{margin-top:18px}.btn{background:#123c5e;color:white;border:1px solid #123c5e;border-radius:10px;padding:11px 17px;font-weight:800;letter-spacing:.01em}.btn-alt{background:#fff;color:#123c5e;border:1px solid #b9d0df}.btn-teal{background:#087d79;border-color:#087d79}.btn:focus-visible,.tab:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #e2a72d;outline-offset:2px}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.small{font-size:12px;color:var(--muted)}.notice{border:1px solid #c6e3dc;background:#ecf8f4;border-radius:9px;padding:11px 13px;font-size:13px;margin:13px 0}.notice.error{background:#fff3f1;border-color:#edc7c2;color:#8c382f}.muted{color:var(--muted)}.status{display:inline-flex;align-items:center;gap:7px;background:#e6f1f0;color:#075d59;border-radius:30px;padding:7px 12px;font-size:12px;font-weight:800}.steps{display:grid;gap:10px}.step{border-left:3px solid #d8a537;padding-left:12px;font-size:13px;color:#3b5468;line-height:1.5}.footer{margin-top:30px;padding:20px 0;border-top:1px solid #cfdce4;font-size:12px;color:#6b8191;display:flex;justify-content:space-between;gap:15px}.hidden{display:none!important}.assessment-note{background:#f8fafb;border-left:4px solid var(--gold);padding:12px 14px;font-size:13px;line-height:1.6}.progress{height:8px;background:#e5edf0;border-radius:99px;overflow:hidden}.progress>span{display:block;height:100%;background:#087d79;width:0}.pill{display:inline-block;border:1px solid #cddde5;padding:6px 9px;border-radius:8px;margin:3px 3px 0 0;font-size:12px;color:#36546b}.print-only{display:none}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.shell{padding:13px 12px 60px}.hero{padding:22px}.mast{align-items:flex-start}.brand h1{font-size:18px}.doc-body{padding:14px}.doc{overflow-x:auto}.doc table{min-width:520px}}
+@media print{.mast,.hero,.sidebar,.tabs,.actions,.footer,.notice{display:none!important}.layout{display:block}.doc{break-inside:avoid}.card{box-shadow:none}.print-only{display:block}body{background:white}}
+
+/* Reporting-room visual system: neutral evidence hierarchy, not an answer guide. */
+:root{--paper:#fffefa;--goldline:#d3b06f;--slate:#496579}
+body{background:linear-gradient(#eaf0f4 0,#f4f7f9 340px);min-height:100vh}
+.shell{max-width:1380px}.mast{padding:6px 0 22px}.mark{box-shadow:0 0 0 3px #fff,0 3px 15px #123c5e19}
+.hero{border:1px solid #163e5a;box-shadow:0 12px 30px #133c5a18;background:linear-gradient(112deg,#0e344f 0%,#174f6b 72%,#27607a 100%)}
+.hero:after{content:"";position:absolute;right:5%;top:0;width:220px;height:100%;background:repeating-linear-gradient(90deg,transparent 0 36px,#ffffff06 36px 37px);pointer-events:none}
+.hero{position:relative}.hero p{max-width:790px}.chip{background:#ffffff12;border-color:#ffffff24}
+.card{border-color:#d8e3e9;box-shadow:0 4px 16px #1a446010}
+.card h3{letter-spacing:-.025em}.case-index{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0}
+.label-chip{font-size:11px;letter-spacing:.08em;font-weight:750;text-transform:uppercase;color:#37566c;background:#eaf1f5;padding:6px 9px;border-radius:6px}
+.doc{background:var(--paper);border:1px solid #d9d9d2;box-shadow:0 7px 18px #24384c0a}
+.doc-title{background:#f8f9f7;border-bottom:2px solid #d7b77d;font-size:17px;letter-spacing:-.025em}
+.doc-body{max-width:100%;font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#273740}
+.doc-body strong{color:#172c3d}.doc-body table{font-family:Inter,"Segoe UI",sans-serif}
+.doc-body table td:last-child{font-variant-numeric:tabular-nums}
+.document-letterhead{display:flex;gap:14px;justify-content:space-between;align-items:start;border-bottom:1px solid #d8dfe1;padding-bottom:13px;margin-bottom:18px;font-family:Inter,"Segoe UI",sans-serif}
+.document-letterhead strong{font-size:14px;color:#173a51}.document-letterhead .mono{font-size:11px;color:#5b7485;text-transform:uppercase;letter-spacing:.08em}
+.document-stamp{border:1px solid #b4c7d1;border-radius:5px;padding:6px 9px;color:#34566a;font-weight:750;font-size:10px;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.document-meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:15px;padding:12px;background:#f4f5f2;border:1px solid #e7e7e0;font-family:Inter,"Segoe UI",sans-serif}
+.document-meta-grid div{font-size:12px;color:#435b69;line-height:1.5}.document-meta-grid b{display:block;color:#73818a;text-transform:uppercase;letter-spacing:.06em;font-size:10px;margin-bottom:2px}
+.doc-footer{border-top:1px solid #e2e5e0;color:#7b878a;display:flex;justify-content:space-between;gap:8px;margin-top:20px;padding-top:12px;font:11px Inter,"Segoe UI",sans-serif}
+.doc table th,.doc table td{vertical-align:top}
+.tabs{border-bottom:1px solid #d8e3e9;padding-bottom:10px}
+.tab{border-radius:7px;transition:background .16s ease,transform .16s ease}.tab:hover:not([aria-selected=true]){background:#e9f1f5;transform:translateY(-1px)}
+.record-row{border:1px solid #e0e8ed;border-left:3px solid #d6b77d;border-radius:7px;background:#f8fafb;padding:12px 14px;margin-bottom:12px;font-family:Inter,"Segoe UI",sans-serif;font-size:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.record-row b{font-size:12px;color:#1b405a}
+.work{border:1px solid #e0e9ee;background:#fbfcfd;padding:16px;border-radius:10px;gap:8px}
+.work textarea{min-height:140px;background:white;transition:border-color .15s ease;line-height:1.6}
+.work textarea:focus{border-color:#087d79;box-shadow:0 0 0 3px #087d7916}
+.work .field-footer{display:flex;justify-content:space-between;gap:8px;color:#6c8492;font-size:11px}
+.work label{font-size:15px;margin:0}
+.doc-notice{background:#eff5f8;padding:10px 12px;margin-top:12px;font-size:12px;border-left:3px solid #95b4c7;color:#416075}
+.status-line{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.alert-strip{font-size:12px;background:#fff8ea;border:1px solid #e8d6af;border-radius:8px;padding:10px 12px;color:#665334;margin:9px 0}
+.desk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.workpaper-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0 13px;border-bottom:1px solid #dae6eb;margin-bottom:17px}
+.section-menu{display:flex;gap:5px;flex-wrap:wrap}
+.section-menu button{background:#fff;border:1px solid #cadce4;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:750;color:#426074}
+.section-menu button[aria-current=true]{background:#123c5e;color:#fff}
+.hint-free{font-size:12px;color:#718795}
+.case-card-mini{font-size:12px;border-bottom:1px solid #e3ebef;padding:10px 0;display:flex;justify-content:space-between;gap:6px}
+.case-card-mini:last-child{border:0}
+@media(max-width:850px){.document-meta-grid{grid-template-columns:1fr}.document-letterhead{flex-wrap:wrap}.workpaper-toolbar{align-items:start}.record-row{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.tab,.work textarea{transition:none}}
+
+.worksheet-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:7px 0 14px}.worksheet-ref{font-size:11px;color:#597383;border:1px solid #d8e3e9;padding:6px 9px;border-radius:7px;background:#f5f9fa}.worksheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.worksheet-field{display:flex;flex-direction:column;gap:6px;min-width:0}.worksheet-field label{font-size:12px;margin:0;color:#345267}.worksheet-field input,.worksheet-field select{width:100%;padding:11px 12px;border:1px solid #c8d6de;border-radius:9px;background:#fff;color:#172f40;font:inherit;font-size:14px}.worksheet-field input:focus-visible,.worksheet-field select:focus-visible{outline:3px solid #e2a72d;outline-offset:2px}.worksheet-field.long{grid-column:1/-1}.worksheet-field textarea{width:100%;min-height:100px}.worksheet-field .field-footer{justify-content:flex-end}.worksheet-status{font-size:11px;color:#657d8a}.work{margin-bottom:15px}.work-head{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;align-items:baseline}.work-head h4{margin:0;font-size:16px}.work-caption{font-size:12px;color:#627b89}.progress-caption{font-size:11px;color:#728696}@media(max-width:640px){.worksheet-grid{grid-template-columns:1fr}.worksheet-field.long{grid-column:1}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="mast"><div class="brand"><div class="mark">FEB UGM</div><div><div class="eyebrow">Intermediate Accounting II · Session 13</div><h1>DisclosureLab</h1></div></div><span class="status">Financial Reporting Case</span></header>
+<section class="hero"><div class="eyebrow" style="color:#bce1e2">Corporate reporting room · Fiscal year 2027</div><h2>Merapi Industrial Systems</h2><p>Review the reporting package, prepare your accounting recommendations, and submit one individual workpaper. The materials are organized as documents received from the company. Your responses should refer to the evidence that you consider relevant.</p><span class="chip">Kieso Chapter 23</span><span class="chip">IFRS 18 / PSAK 118</span><span class="chip">Financial close review</span></section>
+<div class="layout">
+<aside class="sidebar stack">
+<section class="card" id="identity-card"><h3>Student details</h3><div class="login" id="identity-form"><label for="niu">Short NIU</label><input id="niu" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="NIU" aria-describedby="niu-help"><div class="small" id="niu-help">Use your student identifier.</div><label for="student-name">Full name</label><input id="student-name" maxlength="90" autocomplete="name" placeholder="Full name"><button type="button" class="btn" id="begin">Open workpaper</button></div><div id="identity-summary" class="hidden"></div></section>
+<section class="card"><h3>Case file register</h3><p class="sub">The register lists the materials supplied by the company. Use the document identifiers when referring to evidence.</p><nav class="steps" id="evidence-nav" aria-label="Case documents"></nav><div id="viewed-status" class="small" style="margin-top:13px">No documents opened in this session.</div></section>
+<section class="card"><h3>Workpaper progress</h3><div class="progress"><span id="progress-bar"></span></div><p id="progress-text" class="small">Open the workpaper to begin.</p><p class="assessment-note">Your work remains on this device until you download the submission file. The application does not transmit your responses to a server.</p></section>
+<section class="card"><h3>Submission</h3><p class="sub">Use the export button to save a JSON file for submission through eLOK. Check that your filename and student details are accurate.</p><div class="actions"><button id="export" class="btn btn-teal" type="button" disabled>Export submission JSON</button><button id="backup" class="btn btn-alt" type="button" disabled>Export draft backup</button><button id="restore" class="btn btn-alt" type="button">Restore saved JSON</button><button id="reset" class="btn btn-alt" type="button">Clear local work</button></div><input type="file" id="restore-file" accept=".json,application/json" class="hidden" aria-label="Choose JSON workpaper to restore"><p class="small">Exporting a JSON file does not submit it to eLOK. Keep a copy and upload it separately.</p><div id="notice" aria-live="polite" class="notice hidden"></div></section>
+</aside>
+<main class="stack">
+<section class="card"><h3>Document register</h3><p class="sub">Amounts are in € millions unless a document states otherwise. The documents form a single fictional case; names and records are developed for this learning activity.</p><div class="case-index"><span class="label-chip">Merapi Industrial Systems</span><span class="label-chip">Consolidated group</span><span class="label-chip">Reporting date · 31 Dec 2027</span></div><div class="tabs" id="doc-tabs" role="tablist" aria-label="Case evidence"></div><div id="document-host"></div></section>
+<section class="card" id="work-area"><h3>Individual workpaper</h3><p class="sub">Enter your conclusions and supporting analysis. The application records your work without assessing it.</p><div id="work-lock" class="assessment-note">Enter your student details to start your workpaper.</div><div class="workpaper-toolbar hidden" id="work-toolbar"><div class="section-menu" id="section-menu" aria-label="Workpaper sections"></div><div class="hint-free" id="section-count"></div></div><div id="work-form" class="hidden"></div><div class="actions"><button id="save" type="button" class="btn btn-alt" disabled>Save on this device</button><span id="save-status" class="small" role="status" aria-live="polite"></span></div></section>
+</main>
+</div>
+<footer class="footer"><span>Fakultas Ekonomika dan Bisnis · Universitas Gadjah Mada</span><span>DisclosureLab · Session 13</span></footer>
+</div>
+<script>
+(function(){
+'use strict';
+const STORAGE='feb-ugm-disclosure-lab-s13-v1';
+const CASE_VERSION='s13-merapi-2027-v1';
+const docs=[
+{id:'A',label:'Financial results',heading:'Document A · Draft reporting schedule',meta:'Finance division · 19 February 2028',body:'<p>Merapi Industrial Systems prepared the following group reporting schedule for the year ended 31 December 2027. The entity manufactures industrial equipment and does not describe investing in assets or providing financing to customers as its main business activity.</p><table><tr><th>Item</th><th>Amount (€m)</th></tr><tr><td>Equipment sales and service revenue</td><td class="num">840.0</td></tr><tr><td>Production, selling, administration and restructuring expenses</td><td class="num">682.0</td></tr><tr><td>Dividend income from passive investment holdings</td><td class="num">12.0</td></tr><tr><td>Interest expense on borrowings</td><td class="num">19.0</td></tr><tr><td>Income-tax expense</td><td class="num">31.0</td></tr></table><p>Operating expenses include €16.0m associated with a restructuring programme undertaken during 2027. The group close ledger records no discontinued operations or additional income and expense lines.</p>'},
+{id:'B',label:'Credit and incident records',heading:'Document B · Year-end records and later correspondence',meta:'Receivables, facilities and compliance records',body:'<p><strong>Customer: Tiga Dinamika Ltd.</strong> Trade receivable at 31 December 2027: €9.4m. The ledger includes a loss allowance of €1.2m. Correspondence dated 20 December 2027 requests extended payment terms following missed November and December instalments. A court notice dated 27 January 2028 records the customer\'s insolvency filing. A 2 February 2028 provisional administrator\'s schedule estimates €2.5m will be recovered on this receivable; the schedule cites the customer\'s financial position at the reporting date.</p><p><strong>West Distribution Facility.</strong> The maintenance report issued 29 December 2027 records the facility as operational. On 12 February 2028, a flash flood damaged storage equipment. The initial engineering estimate of loss is €7.5m; insurance recovery remains under review.</p><p>A company-secretary notice dated 15 March 2028 records authorization of the group financial statements for issue.</p>'},
+{id:'C',label:'Financing agreement',heading:'Document C · Financing and ownership extract',meta:'Legal and treasury office · 31 December 2027',body:'<p>Merapi received a loan of €36.0m on 1 August 2027 from Batu Cendana Holdings, which controls 62% of Merapi\'s voting rights. The agreement states an annual interest rate of 2%, no pledged security, and repayment on demand. The principal was outstanding at the reporting date.</p><p>The company\'s draft financial statements separately record the loan payable and related interest expense. The agreement is accompanied by a director-approved transaction summary and bank confirmation.</p><p>The legal-file index lists no separate collateral agreement or guarantee for this facility.</p>'},
+{id:'D',label:'Business-line data',heading:'Document D · Management operating-line report',meta:'Chief operating decision-maker pack · 31 December 2027',body:'<p>The chief operating decision-maker reviews the following four operating lines separately. The table gives management\'s segment revenue, segment profit or loss, and assets. The entries have not been adjusted for intersegment transactions.</p><table><tr><th>Operating line</th><th>External revenue</th><th>Intersegment revenue</th><th>Profit / (loss)</th><th>Assets</th></tr><tr><td>Components</td><td class="num">465</td><td class="num">35</td><td class="num">145</td><td class="num">500</td></tr><tr><td>Manufacturing systems</td><td class="num">225</td><td class="num">25</td><td class="num">48</td><td class="num">240</td></tr><tr><td>Services</td><td class="num">125</td><td class="num">15</td><td class="num">18</td><td class="num">140</td></tr><tr><td>New ventures</td><td class="num">25</td><td class="num">0</td><td class="num">(4)</td><td class="num">80</td></tr></table><p>The group finance ledger separately records €49m of head-office operating costs that are not allocated to the four lines. Management has not aggregated these operating lines. No other separately monitored operating lines appear in the year-end management pack.</p>'},
+{id:'E',label:'Quarterly records',heading:'Document E · Quarter-by-quarter reporting file',meta:'Financial planning · 2027',body:'<p>Quarterly group revenue was €170m, €215m, €195m and €260m for quarters 1 through 4, respectively. A €1.2m annual insurance premium was paid in advance on 1 January 2027 for twelve months of coverage received evenly throughout the year.</p><p>First-quarter pretax income was €42m. The finance team estimated the average annual effective income-tax rate at 24%. The quarterly tax file lists no separately accounted-for tax events.</p><p>The interim package covers the quarter ended 31 March 2027.</p>'},
+{id:'F',label:'Investor communications',heading:'Document F · External communications extracts',meta:'Investor relations · Public written presentation',body:'<p>A performance update posted on the company investor-relations website uses the subtotal <strong>“Adjusted operating result — €174.0m”</strong>. The accompanying commentary states that the figure excludes €16.0m of restructuring expenditure and is regularly reviewed by the executive team.</p><p>The financial reporting team estimates a 24% income-tax effect for the restructuring adjustment. That expense arose entirely within wholly owned entities. The company has no additional adjusted measures in the supplied communication.</p>'}
+];
+const work=[
+{id:'w1',title:'Statement presentation and investor measure',docs:'A, F',prompt:'Prepare the financial-statement subtotals and evaluate the published performance measure. Enter your computations and the associated reporting rationale.',fields:[
+{id:'op',label:'Operating profit (€m)',type:'number'},
+{id:'pre',label:'Profit before financing and income taxes (€m)',type:'number'},
+{id:'pretax',label:'Profit before income taxes (€m)',type:'number'},
+{id:'net',label:'Profit for the year (€m)',type:'number'},
+{id:'reported',label:'Investor presentation subtotal (€m)',type:'number'},
+{id:'recon',label:'Reconciliation amount (€m)',type:'number'},
+{id:'tax',label:'Tax effect of reconciling item (€m)',type:'number'},
+{id:'treatment',label:'Assessment of investor communication',type:'select',options:['Reporting note required','Additional evidence required','No separate reporting note proposed']},
+{id:'explain',label:'Basis of presentation and proposed note',type:'text'}]},
+{id:'w2',title:'Events after the reporting period',docs:'B',prompt:'Review each subsequent event separately. Record your proposed financial statement treatment, the amount if applicable, and supporting evidence.',fields:[
+{id:'customer',label:'Customer matter — proposed treatment',type:'select',options:['Adjust the year-end amounts','Disclose without adjustment','No adjustment or disclosure','Further evidence required']},
+{id:'customeramt',label:'Customer matter — proposed adjustment (€m; signed)',type:'number'},
+{id:'customerevidence',label:'Customer matter — basis and document references',type:'text'},
+{id:'flood',label:'Facility matter — proposed treatment',type:'select',options:['Adjust the year-end amounts','Disclose without adjustment','No adjustment or disclosure','Further evidence required']},
+{id:'floodamt',label:'Facility matter — proposed adjustment (€m; signed)',type:'number'},
+{id:'floodevidence',label:'Facility matter — basis and document references',type:'text'}]},
+{id:'w3',title:'Operating segment worksheet',docs:'D',prompt:'Perform the quantitative reporting assessment using the management operating-line records. Show thresholds and record decisions for each operating line.',fields:[
+{id:'revthreshold',label:'Revenue test threshold (€m)',type:'number'},
+{id:'plthreshold',label:'Profit or loss test threshold (€m)',type:'number'},
+{id:'assetthreshold',label:'Asset test threshold (€m)',type:'number'},
+{id:'components',label:'Components — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'manufacturing',label:'Manufacturing systems — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'services',label:'Services — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'ventures',label:'New ventures — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'coverage',label:'External-revenue coverage (%)',type:'number'},
+{id:'bridge',label:'Reconciled operating result (€m)',type:'number'},
+{id:'evidence',label:'Calculations, judgments and supporting references',type:'text'}]},
+{id:'w4',title:'Interim accounting file',docs:'E',prompt:'Prepare the selected interim amounts and document any reporting implications raised by the quarterly file.',fields:[
+{id:'insurance',label:'Q1 insurance expense (€m)',type:'number'},
+{id:'prepaid',label:'Insurance prepayment at 31 March (€m)',type:'number'},
+{id:'tax',label:'Q1 income-tax expense (€m)',type:'number'},
+{id:'annual',label:'Annual revenue total (€m)',type:'number'},
+{id:'analysis',label:'Quarterly comparison and reasoning',type:'text'}]},
+{id:'w5',title:'Related-party note and final review',docs:'C; refer to other files as needed',prompt:'Draft the relevant transaction disclosure and submit a concise review memorandum on the material matters requiring management attention.',fields:[
+{id:'balance',label:'Outstanding loan principal (€m)',type:'number'},
+{id:'interest',label:'Interest expense for the reporting period (€m)',type:'number'},
+{id:'party',label:'Related-party relationship and terms — note draft',type:'text'},
+{id:'memo',label:'Final review memorandum (findings, evidence references and unresolved matters)',type:'text'}]}
+];
+const documentRegister={
+A:{ref:'MIS-FIN-27-041',origin:'Group Finance',kind:'Closing schedule',issued:'19 Feb 2028',classification:'Draft'},
+B:{ref:'MIS-RSK-28-007',origin:'Credit & Facilities',kind:'Correspondence bundle',issued:'Dec 2027 – Mar 2028',classification:'Working records'},
+C:{ref:'MIS-LEG-27-018',origin:'Treasury & Legal',kind:'Executed agreement extract',issued:'19 Feb 2028',classification:'Contract extract'},
+D:{ref:'MIS-MGT-27-026',origin:'Group Management Accounting',kind:'Operating-line schedule',issued:'19 Feb 2028',classification:'Internal'},
+E:{ref:'MIS-FP-27-013',origin:'Financial Planning',kind:'Interim accounting file',issued:'20 Feb 2028',classification:'Internal'},
+F:{ref:'MIS-IR-28-003',origin:'Investor Relations',kind:'Published performance update',issued:'20 Feb 2028',classification:'Public communication'}
+};
+const $=s=>document.querySelector(s);
+let state=null,active='A',savePending=null;const openedDocs=new Set();
+function clean(s,max){return String(s||'').trim().slice(0,max);}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||'null');if(!x||x.caseVersion!==CASE_VERSION||!x.student||!/^\d{4,12}$/.test(x.student.niu))return null;return x}catch(_){return null}}
+function persist(){if(!state)return false;state.updatedAt=new Date().toISOString();try{localStorage.setItem(STORAGE,JSON.stringify(state));$('#save-status').textContent='Saved on this device';return true}catch(_){$('#save-status').textContent='Local storage unavailable. Download a JSON copy.';return false}}
+function showNotice(t,bad){const n=$('#notice');n.textContent=t;n.className=bad?'notice error':'notice';}
+function activateDoc(id){
+ const d=docs.find(x=>x.id===id),m=documentRegister[id];if(!d||!m)return;
+ active=id;openedDocs.add(id);
+ if(state){state.viewedDocs=Array.from(openedDocs);persist();}
+ const meta='<div class="document-meta-grid"><div><b>Record ID</b>'+m.ref+'</div><div><b>Origin</b>'+m.origin+'</div><div><b>Date</b>'+m.issued+'</div></div>';
+ const header='<div class="document-letterhead"><div><div class="mono">Merapi Industrial Systems · Case file</div><strong>'+m.kind+'</strong></div><span class="document-stamp">'+m.classification+'</span></div>';
+ const footer='<div class="doc-footer"><span>'+m.ref+' · '+d.label+'</span><span>Corporate reporting file · Extract</span></div>';
+ $('#document-host').innerHTML='<article class="doc" role="tabpanel" aria-label="'+d.label+'"><div class="doc-title">'+d.heading+'</div><div class="doc-body">'+header+meta+d.body+footer+'</div></article>';
+ document.querySelectorAll('[data-doc]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.doc===id)));
+ updateViewed();
+}
+function updateViewed(){
+ const n=$('#viewed-status');if(n)n.textContent=openedDocs.size+' of '+docs.length+' documents opened on this device.';
+}
+function renderNav(){
+ docs.forEach(d=>{
+ const b=document.createElement('button');b.type='button';b.className='tab';b.dataset.doc=d.id;
+ b.textContent='Document '+d.id;b.setAttribute('role','tab');b.setAttribute('aria-selected','false');
+ b.onclick=()=>activateDoc(d.id);$('#doc-tabs').append(b);
+ const n=document.createElement('div');n.className='step';n.textContent=d.id+' · '+d.label;
+ $('#evidence-nav').append(n);
+ });
+ activateDoc(active);
+}
+function preserveEarlierDrafts(){
+ if(!state||!state.responses)return;
+ const legacy=state.responses;
+ for(const item of [{source:'w6',target:'w1',label:'Previous investor communication response'},{source:'w7',target:'w5',label:'Previous final memorandum'}]){
+  const value=legacy[item.source];
+  if(typeof value!=='string'||!value.trim())continue;
+  const prior=legacy[item.target];
+  const obj=typeof prior==='string'?{legacyNotes:prior}:{...(prior||{})};
+  obj.legacyNotes=[obj.legacyNotes||'',item.label+': '+value].filter(Boolean).join('\n');
+  legacy[item.target]=obj;delete legacy[item.source];
+ }
+}
+function answerSet(task){
+ if(!state.responses[task.id]||typeof state.responses[task.id]!=='object'||Array.isArray(state.responses[task.id])){
+  const legacy=typeof state.responses[task.id]==='string'?state.responses[task.id]:'';
+  state.responses[task.id]=legacy?{legacyNotes:legacy}:{};
+ }
+ return state.responses[task.id];
+}
+function makeField(task,field){
+ const wrap=document.createElement('div');wrap.className='worksheet-field'+(field.type==='text'?' long':'');
+ const label=document.createElement('label');label.htmlFor=task.id+'-'+field.id;label.textContent=field.label;
+ let ctrl;
+ if(field.type==='text'){
+  ctrl=document.createElement('textarea');ctrl.maxLength=4000;ctrl.rows=4;
+ }else if(field.type==='select'){
+  ctrl=document.createElement('select');const empty=document.createElement('option');empty.value='';empty.textContent='Select response';ctrl.append(empty);
+  for(const option of field.options){const o=document.createElement('option');o.value=option;o.textContent=option;ctrl.append(o)}
+ }else{
+  ctrl=document.createElement('input');ctrl.type='text';ctrl.inputMode='decimal';ctrl.maxLength=24;
+  ctrl.placeholder='Enter amount';ctrl.setAttribute('aria-label',field.label);
+ }
+ ctrl.id=task.id+'-'+field.id;ctrl.dataset.worktask=task.id;ctrl.dataset.workfield=field.id;
+ ctrl.value=answerSet(task)[field.id]||'';
+ const detail=document.createElement('span');detail.className='worksheet-status';
+ const update=()=>{
+  if(field.type==='number'&&ctrl.value.trim()&&!/^[+-]?(?:\d+(?:\\.\d*)?|\\.\d+)$/.test(ctrl.value.trim())){detail.textContent='Use a number without currency symbols or separators.';detail.style.color='#a03f39';}
+  else{detail.textContent=field.type==='text'?ctrl.value.length+' characters':'';detail.style.color='';}
+ };
+ ctrl.addEventListener('input',()=>{answerSet(task)[field.id]=ctrl.value;update();updateProgress();$('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550)});
+ ctrl.addEventListener('change',()=>{answerSet(task)[field.id]=ctrl.value;update();updateProgress();clearTimeout(savePending);savePending=setTimeout(persist,550)});
+ update();wrap.append(label,ctrl,detail);return wrap;
+}
+function renderWork(){
+ const f=$('#work-form'),menu=$('#section-menu');f.replaceChildren();menu.replaceChildren();
+ work.forEach((task,i)=>{
+ const section=document.createElement('section');section.className='work';section.id='section-'+task.id;
+ const head=document.createElement('div');head.className='work-head';
+ const heading=document.createElement('h4');heading.textContent=(i+1)+'. '+task.title;
+ const ref=document.createElement('span');ref.className='worksheet-ref';ref.textContent='Source: '+task.docs;
+ head.append(heading,ref);
+ const prompt=document.createElement('p');prompt.className='sub';prompt.textContent=task.prompt;
+ const grid=document.createElement('div');grid.className='worksheet-grid';for(const field of task.fields)grid.append(makeField(task,field));
+ section.append(head,prompt,grid);
+ const legacy=answerSet(task).legacyNotes;
+ if(legacy){const prior=document.createElement('div');prior.className='assessment-note';prior.textContent='Previous draft text (retained): '+legacy;section.append(prior)}
+ f.append(section);
+ const jump=document.createElement('button');jump.type='button';jump.textContent=String(i+1);
+ jump.setAttribute('aria-label','Go to workpaper '+(i+1)+': '+task.title);
+ jump.onclick=()=>{const field=section.querySelector?.('input,select,textarea');if(field)field.focus();if(typeof section.scrollIntoView==='function')section.scrollIntoView({behavior:'smooth',block:'center'})};
+ menu.append(jump);
+ });
+ $('#work-toolbar').classList.remove('hidden');$('#section-count').textContent=work.length+' structured workpapers';
+}
+function filledFields(){
+ if(!state)return 0;return work.reduce((sum,task)=>sum+task.fields.filter(field=>String(answerSet(task)[field.id]||'').trim()!=='').length,0);
+}
+function updateProgress(){
+ if(!state)return;
+ const total=work.reduce((n,t)=>n+t.fields.length,0),filled=filledFields();
+ $('#progress-bar').style.width=Math.round(100*filled/total)+'%';
+ $('#progress-text').textContent=filled+' of '+total+' workpaper fields entered.';
+}
+function getInputValues(){
+ if(!state)return;
+ document.querySelectorAll('[data-worktask]').forEach(x=>{const task=work.find(t=>t.id===x.dataset.worktask);if(task)answerSet(task)[x.dataset.workfield]=x.value});
+}
+function getResponses(){
+ return Object.fromEntries(work.map(t=>[t.id,Object.fromEntries([...t.fields.map(f=>[f.id,String(answerSet(t)[f.id]||'').slice(0,f.type==='text'?4000:64)]),...(answerSet(t).legacyNotes?[['legacyNotes',String(answerSet(t).legacyNotes).slice(0,9000)]]:[])])]));
+}
+function validStructuredResponse(q){
+ if(!q||typeof q!=='object'||Array.isArray(q))return false;
+ return work.every(t=>{const r=q[t.id];return r&&typeof r==='object'&&!Array.isArray(r)&&t.fields.every(f=>{
+  const v=r[f.id];if(v===undefined)return true;if(typeof v!=='string'||v.length>(f.type==='text'?4000:64))return false;
+  if(f.type==='select'&&v&&!f.options.includes(v))return false;
+  return true;
+ })});
+}
+function renderIdentity(){
+ if(!state)return;preserveEarlierDrafts();$('#identity-form').classList.add('hidden');
+ const box=$('#identity-summary');box.classList.remove('hidden');box.replaceChildren();
+ const p=document.createElement('p');p.textContent=state.student.name+' · '+state.student.niu;
+ const detail=document.createElement('p');detail.className='small';detail.textContent='Case record: '+state.recordId;
+ box.append(p,detail);
+ for(const id of state.viewedDocs||[])if(documentRegister[id])openedDocs.add(id);
+ $('#work-lock').classList.add('hidden');$('#work-form').classList.remove('hidden');
+ $('#save').disabled=false;$('#export').disabled=false;$('#backup').disabled=false;
+ renderWork();updateProgress();updateViewed();
+}
+function start(){if(state){showNotice('A local workpaper is already open. Clear local work to start another record.',true);return}const niu=clean($('#niu').value,12),name=clean($('#student-name').value,90);if(!/^\d{4,12}$/.test(niu)){showNotice('Enter a numeric NIU with 4 to 12 digits.',true);return}if(name.length<3){showNotice('Enter your full name.',true);return}state={caseVersion:CASE_VERSION,recordId:'S13-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),student:{niu,name},startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),responses:{},viewedDocs:Array.from(openedDocs)};persist();renderIdentity();showNotice('Workpaper opened. Review the documents and record your analysis.',false)}
+function collect(){if(!state)return;getInputValues();persist();}
+function downloadJson(data,filename){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportedPayload(kind){
+ return {type:kind==='draft'?'feb-ugm-disclosurelab-draft':'feb-ugm-disclosurelab-student-workpaper',
+ version:2,caseVersion:CASE_VERSION,recordId:state.recordId,student:state.student,
+ startedAt:state.startedAt,updatedAt:state.updatedAt,exportedAt:new Date().toISOString(),
+ viewedDocs:Array.from(openedDocs),
+ responses:getResponses()};
+}
+function makeFile(){
+ if(!state)return;collect();
+ const invalid=work.flatMap(t=>t.fields.filter(f=>f.type==='number'&&String(answerSet(t)[f.id]||'').trim()&&!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(String(answerSet(t)[f.id]).trim())).map(f=>f.label));
+ if(invalid.length){showNotice('Check numeric format in '+invalid.length+' field(s). Enter numbers without currency symbols or separators.',true);return;}
+ const remaining=work.reduce((n,t)=>n+t.fields.filter(f=>!String(answerSet(t)[f.id]||'').trim()).length,0);
+ if(remaining&&!window.confirm(remaining+' workpaper field(s) are empty. Continue exporting the file?'))return;
+ downloadJson(exportedPayload('submission'),'Session13_'+state.student.niu+'_'+state.recordId+'.json');
+ showNotice('Submission JSON downloaded. Upload this file separately through eLOK.',false);
+}
+function makeBackup(){
+ if(!state)return;collect();
+ downloadJson(exportedPayload('draft'),'Session13_Draft_'+state.student.niu+'.json');
+ showNotice('Draft backup downloaded. Keep it in a secure location.',false);
+}
+async function restoreWork(file){
+ if(!file)return;if(file.size>300000){showNotice('File exceeds the 300 KB workpaper limit.',true);return;}
+ let x;try{x=JSON.parse(await file.text())}catch(_){showNotice('The selected file is not valid JSON.',true);return;}
+ const supported=['feb-ugm-disclosurelab-draft','feb-ugm-disclosurelab-student-workpaper'];
+ const validPerson=x&&x.student&&/^\d{4,12}$/.test(String(x.student.niu||''))&&typeof x.student.name==='string'&&x.student.name.trim().length>=3&&x.student.name.length<=90;
+ const validOld=x?.version===1&&x.responses&&['w1','w2','w3','w4','w5','w6','w7'].every(id=>typeof x.responses[id]==='string'&&x.responses[id].length<=9000);
+ const validNew=x?.version===2&&validStructuredResponse(x.responses);
+ if(!x||!supported.includes(x.type)||x.caseVersion!==CASE_VERSION||!validPerson||!(validOld||validNew)){
+  showNotice('This file is not a compatible Session 13 workpaper.',true);return;
+ }
+ if(state&&!window.confirm('Replace the workpaper currently saved on this device? Export it first if needed.'))return;
+ clearTimeout(savePending);
+ const responses=Object.fromEntries(work.map(t=>[t.id,x.version===1?{legacyNotes:x.responses[t.id]}:{...x.responses[t.id]}]));
+ if(x.version===1){
+  if(x.responses.w6.trim())responses.w1.legacyNotes+='\nPrevious investor communication response: '+x.responses.w6;
+  if(x.responses.w7.trim())responses.w5.legacyNotes+='\nPrevious final memorandum: '+x.responses.w7;
+ }
+ state={caseVersion:CASE_VERSION,recordId:clean(x.recordId,95)||'S13-restored',student:{niu:String(x.student.niu),name:x.student.name.trim()},
+ startedAt:clean(x.startedAt,50)||new Date().toISOString(),updatedAt:new Date().toISOString(),
+ viewedDocs:Array.isArray(x.viewedDocs)?x.viewedDocs.filter(v=>!!documentRegister[v]):[],responses};
+ for(const docid of state.viewedDocs)openedDocs.add(docid);
+ persist();renderIdentity();showNotice('Workpaper restored on this device. Review the student details before export.',false);
+}
+function reset(){if(!window.confirm('Clear the student details and all locally saved responses on this device? Export a copy first if required.'))return;try{localStorage.removeItem(STORAGE)}catch(_){}location.reload()}
+window.addEventListener('pagehide',()=>{if(state){clearTimeout(savePending);collect();}});
+$('#begin').onclick=start;
+$('#backup').onclick=makeBackup;
+$('#restore').onclick=()=>$('#restore-file').click();
+$('#restore-file').onchange=async e=>{await restoreWork(e.target.files?.[0]);e.target.value='';};
+$('#save').onclick=()=>{if(state){getInputValues();persist();showNotice('Current responses saved on this device.',false)}};$('#export').onclick=makeFile;$('#reset').onclick=reset;renderNav();state=load();if(state)renderIdentity();
+})();
+</script>
+</body>
+</html>

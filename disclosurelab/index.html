@@ -56,6 +56,8 @@ body{background:linear-gradient(#eaf0f4 0,#f4f7f9 340px);min-height:100vh}
 .case-card-mini:last-child{border:0}
 @media(max-width:850px){.document-meta-grid{grid-template-columns:1fr}.document-letterhead{flex-wrap:wrap}.workpaper-toolbar{align-items:start}.record-row{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.tab,.work textarea{transition:none}}
+
+.worksheet-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:7px 0 14px}.worksheet-ref{font-size:11px;color:#597383;border:1px solid #d8e3e9;padding:6px 9px;border-radius:7px;background:#f5f9fa}.worksheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.worksheet-field{display:flex;flex-direction:column;gap:6px;min-width:0}.worksheet-field label{font-size:12px;margin:0;color:#345267}.worksheet-field input,.worksheet-field select{width:100%;padding:11px 12px;border:1px solid #c8d6de;border-radius:9px;background:#fff;color:#172f40;font:inherit;font-size:14px}.worksheet-field input:focus-visible,.worksheet-field select:focus-visible{outline:3px solid #e2a72d;outline-offset:2px}.worksheet-field.long{grid-column:1/-1}.worksheet-field textarea{width:100%;min-height:100px}.worksheet-field .field-footer{justify-content:flex-end}.worksheet-status{font-size:11px;color:#657d8a}.work{margin-bottom:15px}.work-head{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;align-items:baseline}.work-head h4{margin:0;font-size:16px}.work-caption{font-size:12px;color:#627b89}.progress-caption{font-size:11px;color:#728696}@media(max-width:640px){.worksheet-grid{grid-template-columns:1fr}.worksheet-field.long{grid-column:1}}
 </style>
 </head>
 <body>
@@ -90,13 +92,45 @@ const docs=[
 {id:'F',label:'Investor communications',heading:'Document F · External communications extracts',meta:'Investor relations · Public written presentation',body:'<p>A performance update posted on the company investor-relations website uses the subtotal <strong>“Adjusted operating result — €174.0m”</strong>. The accompanying commentary states that the figure excludes €16.0m of restructuring expenditure and is regularly reviewed by the executive team.</p><p>The financial reporting team estimates a 24% income-tax effect for the restructuring adjustment. That expense arose entirely within wholly owned entities. The company has no additional adjusted measures in the supplied communication.</p>'}
 ];
 const work=[
-{id:'w1',title:'Reporting overview',prompt:'Prepare a concise reporting note based on the financial-results schedule. State the amounts you would present and show calculations where appropriate.'},
-{id:'w2',title:'Transactions and disclosures',prompt:'Prepare the proposed disclosure treatment for the financing agreement. Identify the evidence used and draft a suitable note where relevant.'},
-{id:'w3',title:'Year-end review',prompt:'Prepare the proposed reporting treatment for the matters in the credit and incident records. Identify any adjustments, disclosures or further evidence you consider necessary, with amounts where relevant.'},
-{id:'w4',title:'Operating-line assessment',prompt:'Analyze the management operating-line report. Show the quantitative tests and prepare your proposed presentation of segment information.'},
-{id:'w5',title:'Interim reporting',prompt:'Prepare a short memorandum based on the quarterly records, including any calculations needed and the implications for interim reporting.'},
-{id:'w6',title:'Investor communications',prompt:'Evaluate the publicly communicated subtotal and describe the reporting treatment and any supporting reconciliations you consider necessary.'},
-{id:'w7',title:'Final memorandum',prompt:'Summarize the most material matters arising from the case and identify the applicable reporting requirements. Distinguish judgments supported by the file from matters needing further information.'}
+{id:'w1',title:'Statement presentation and investor measure',docs:'A, F',prompt:'Prepare the financial-statement subtotals and evaluate the published performance measure. Enter your computations and the associated reporting rationale.',fields:[
+{id:'op',label:'Operating profit (€m)',type:'number'},
+{id:'pre',label:'Profit before financing and income taxes (€m)',type:'number'},
+{id:'pretax',label:'Profit before income taxes (€m)',type:'number'},
+{id:'net',label:'Profit for the year (€m)',type:'number'},
+{id:'reported',label:'Investor presentation subtotal (€m)',type:'number'},
+{id:'recon',label:'Reconciliation amount (€m)',type:'number'},
+{id:'tax',label:'Tax effect of reconciling item (€m)',type:'number'},
+{id:'treatment',label:'Assessment of investor communication',type:'select',options:['Reporting note required','Additional evidence required','No separate reporting note proposed']},
+{id:'explain',label:'Basis of presentation and proposed note',type:'text'}]},
+{id:'w2',title:'Events after the reporting period',docs:'B',prompt:'Review each subsequent event separately. Record your proposed financial statement treatment, the amount if applicable, and supporting evidence.',fields:[
+{id:'customer',label:'Customer matter — proposed treatment',type:'select',options:['Adjust the year-end amounts','Disclose without adjustment','No adjustment or disclosure','Further evidence required']},
+{id:'customeramt',label:'Customer matter — proposed adjustment (€m; signed)',type:'number'},
+{id:'customerevidence',label:'Customer matter — basis and document references',type:'text'},
+{id:'flood',label:'Facility matter — proposed treatment',type:'select',options:['Adjust the year-end amounts','Disclose without adjustment','No adjustment or disclosure','Further evidence required']},
+{id:'floodamt',label:'Facility matter — proposed adjustment (€m; signed)',type:'number'},
+{id:'floodevidence',label:'Facility matter — basis and document references',type:'text'}]},
+{id:'w3',title:'Operating segment worksheet',docs:'D',prompt:'Perform the quantitative reporting assessment using the management operating-line records. Show thresholds and record decisions for each operating line.',fields:[
+{id:'revthreshold',label:'Revenue test threshold (€m)',type:'number'},
+{id:'plthreshold',label:'Profit or loss test threshold (€m)',type:'number'},
+{id:'assetthreshold',label:'Asset test threshold (€m)',type:'number'},
+{id:'components',label:'Components — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'manufacturing',label:'Manufacturing systems — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'services',label:'Services — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'ventures',label:'New ventures — reporting decision',type:'select',options:['Report separately','Do not report separately','Further review required']},
+{id:'coverage',label:'External-revenue coverage (%)',type:'number'},
+{id:'bridge',label:'Reconciled operating result (€m)',type:'number'},
+{id:'evidence',label:'Calculations, judgments and supporting references',type:'text'}]},
+{id:'w4',title:'Interim accounting file',docs:'E',prompt:'Prepare the selected interim amounts and document any reporting implications raised by the quarterly file.',fields:[
+{id:'insurance',label:'Q1 insurance expense (€m)',type:'number'},
+{id:'prepaid',label:'Insurance prepayment at 31 March (€m)',type:'number'},
+{id:'tax',label:'Q1 income-tax expense (€m)',type:'number'},
+{id:'annual',label:'Annual revenue total (€m)',type:'number'},
+{id:'analysis',label:'Quarterly comparison and reasoning',type:'text'}]},
+{id:'w5',title:'Related-party note and final review',docs:'C; refer to other files as needed',prompt:'Draft the relevant transaction disclosure and submit a concise review memorandum on the material matters requiring management attention.',fields:[
+{id:'balance',label:'Outstanding loan principal (€m)',type:'number'},
+{id:'interest',label:'Interest expense for the reporting period (€m)',type:'number'},
+{id:'party',label:'Related-party relationship and terms — note draft',type:'text'},
+{id:'memo',label:'Final review memorandum (findings, evidence references and unresolved matters)',type:'text'}]}
 ];
 const documentRegister={
 A:{ref:'MIS-FIN-27-041',origin:'Group Finance',kind:'Closing schedule',issued:'19 Feb 2028',classification:'Draft'},
@@ -136,33 +170,82 @@ function renderNav(){
  });
  activateDoc(active);
 }
+function answerSet(task){
+ if(!state.responses[task.id]||typeof state.responses[task.id]!=='object'||Array.isArray(state.responses[task.id])){
+  const legacy=typeof state.responses[task.id]==='string'?state.responses[task.id]:'';
+  state.responses[task.id]=legacy?{legacyNotes:legacy}:{};
+ }
+ return state.responses[task.id];
+}
+function makeField(task,field){
+ const wrap=document.createElement('div');wrap.className='worksheet-field'+(field.type==='text'?' long':'');
+ const label=document.createElement('label');label.htmlFor=task.id+'-'+field.id;label.textContent=field.label;
+ let ctrl;
+ if(field.type==='text'){
+  ctrl=document.createElement('textarea');ctrl.maxLength=4000;ctrl.rows=4;
+ }else if(field.type==='select'){
+  ctrl=document.createElement('select');const empty=document.createElement('option');empty.value='';empty.textContent='Select response';ctrl.append(empty);
+  for(const option of field.options){const o=document.createElement('option');o.value=option;o.textContent=option;ctrl.append(o)}
+ }else{
+  ctrl=document.createElement('input');ctrl.type='text';ctrl.inputMode='decimal';ctrl.maxLength=24;
+  ctrl.placeholder='Enter amount';ctrl.setAttribute('aria-describedby','numeric-entry-note');
+ }
+ ctrl.id=task.id+'-'+field.id;ctrl.dataset.worktask=task.id;ctrl.dataset.workfield=field.id;
+ ctrl.value=answerSet(task)[field.id]||'';
+ const detail=document.createElement('span');detail.className='worksheet-status';
+ const update=()=>{
+  if(field.type==='number'&&ctrl.value.trim()&&!/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$/.test(ctrl.value.trim())){detail.textContent='Use a number without currency symbols or separators.';detail.style.color='#a03f39';}
+  else{detail.textContent=field.type==='text'?ctrl.value.length+' characters':'';detail.style.color='';}
+ };
+ ctrl.addEventListener('input',()=>{answerSet(task)[field.id]=ctrl.value;update();updateProgress();$('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550)});
+ ctrl.addEventListener('change',()=>{answerSet(task)[field.id]=ctrl.value;update();updateProgress();clearTimeout(savePending);savePending=setTimeout(persist,550)});
+ update();wrap.append(label,ctrl,detail);return wrap;
+}
 function renderWork(){
  const f=$('#work-form'),menu=$('#section-menu');f.replaceChildren();menu.replaceChildren();
- work.forEach((item,i)=>{
- const section=document.createElement('section');section.className='work';section.id='section-'+item.id;
- const label=document.createElement('label');label.htmlFor=item.id;label.textContent=(i+1)+'. '+item.title;
- const expl=document.createElement('div');expl.className='sub';expl.textContent=item.prompt;
- const textarea=document.createElement('textarea');textarea.id=item.id;textarea.dataset.response=item.id;
- textarea.maxLength=9000;textarea.value=state.responses[item.id]||'';
- const footer=document.createElement('div');footer.className='field-footer';
- const counter=document.createElement('span');
- const reference=document.createElement('span');reference.textContent='Reference documents by their IDs as needed.';
- const updateCount=()=>{counter.textContent=textarea.value.length+' characters';};
- updateCount();footer.append(counter,reference);
- textarea.addEventListener('input',()=>{
- state.responses[item.id]=textarea.value;updateCount();updateProgress();
- $('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550);
- });
- section.append(label,expl,textarea,footer);f.append(section);
+ work.forEach((task,i)=>{
+ const section=document.createElement('section');section.className='work';section.id='section-'+task.id;
+ const head=document.createElement('div');head.className='work-head';
+ const heading=document.createElement('h4');heading.textContent=(i+1)+'. '+task.title;
+ const ref=document.createElement('span');ref.className='worksheet-ref';ref.textContent='Source: '+task.docs;
+ head.append(heading,ref);
+ const prompt=document.createElement('p');prompt.className='sub';prompt.textContent=task.prompt;
+ const grid=document.createElement('div');grid.className='worksheet-grid';for(const field of task.fields)grid.append(makeField(task,field));
+ section.append(head,prompt,grid);
+ const legacy=answerSet(task).legacyNotes;
+ if(legacy){const prior=document.createElement('div');prior.className='assessment-note';prior.textContent='Previous draft text (retained): '+legacy;section.append(prior)}
+ f.append(section);
  const jump=document.createElement('button');jump.type='button';jump.textContent=String(i+1);
- jump.setAttribute('aria-label','Go to section '+(i+1)+': '+item.title);
- jump.onclick=()=>{textarea.focus();if(typeof section.scrollIntoView==='function')section.scrollIntoView({behavior:'smooth',block:'center'});};
+ jump.setAttribute('aria-label','Go to workpaper '+(i+1)+': '+task.title);
+ jump.onclick=()=>{const field=section.querySelector?.('input,select,textarea');if(field)field.focus();if(typeof section.scrollIntoView==='function')section.scrollIntoView({behavior:'smooth',block:'center'})};
  menu.append(jump);
  });
- $('#work-toolbar').classList.remove('hidden');
- $('#section-count').textContent='Seven workpaper sections';
+ $('#work-toolbar').classList.remove('hidden');$('#section-count').textContent=work.length+' structured workpapers';
 }
-function updateProgress(){if(!state)return;let filled=work.filter(x=>clean(state.responses[x.id],9000).length>0).length;$('#progress-bar').style.width=Math.round(100*filled/work.length)+'%';$('#progress-text').textContent=filled+' of '+work.length+' workpaper sections have content.';}
+function filledFields(){
+ if(!state)return 0;return work.reduce((sum,task)=>sum+task.fields.filter(field=>String(answerSet(task)[field.id]||'').trim()!=='').length,0);
+}
+function updateProgress(){
+ if(!state)return;
+ const total=work.reduce((n,t)=>n+t.fields.length,0),filled=filledFields();
+ $('#progress-bar').style.width=Math.round(100*filled/total)+'%';
+ $('#progress-text').textContent=filled+' of '+total+' workpaper fields entered.';
+}
+function getInputValues(){
+ if(!state)return;
+ document.querySelectorAll('[data-worktask]').forEach(x=>{const task=work.find(t=>t.id===x.dataset.worktask);if(task)answerSet(task)[x.dataset.workfield]=x.value});
+}
+function getResponses(){
+ return Object.fromEntries(work.map(t=>[t.id,Object.fromEntries([...t.fields.map(f=>[f.id,String(answerSet(t)[f.id]||'').slice(0,f.type==='text'?4000:64)]),...(answerSet(t).legacyNotes?[['legacyNotes',String(answerSet(t).legacyNotes).slice(0,9000)]]:[])])]));
+}
+function validStructuredResponse(q){
+ if(!q||typeof q!=='object'||Array.isArray(q))return false;
+ return work.every(t=>{const r=q[t.id];return r&&typeof r==='object'&&!Array.isArray(r)&&t.fields.every(f=>{
+  const v=r[f.id];if(v===undefined)return true;if(typeof v!=='string'||v.length>(f.type==='text'?4000:64))return false;
+  if(f.type==='select'&&v&&!f.options.includes(v))return false;
+  return true;
+ })});
+}
 function renderIdentity(){
  if(!state)return;$('#identity-form').classList.add('hidden');
  const box=$('#identity-summary');box.classList.remove('hidden');box.replaceChildren();
@@ -175,7 +258,7 @@ function renderIdentity(){
  renderWork();updateProgress();updateViewed();
 }
 function start(){if(state){showNotice('A local workpaper is already open. Clear local work to start another record.',true);return}const niu=clean($('#niu').value,12),name=clean($('#student-name').value,90);if(!/^\d{4,12}$/.test(niu)){showNotice('Enter a numeric NIU with 4 to 12 digits.',true);return}if(name.length<3){showNotice('Enter your full name.',true);return}state={caseVersion:CASE_VERSION,recordId:'S13-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),student:{niu,name},startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),responses:{},viewedDocs:Array.from(openedDocs)};persist();renderIdentity();showNotice('Workpaper opened. Review the documents and record your analysis.',false)}
-function collect(){if(!state)return;document.querySelectorAll('[data-response]').forEach(x=>{state.responses[x.dataset.response]=x.value});persist();}
+function collect(){if(!state)return;getInputValues();persist();}
 function downloadJson(data,filename){
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -184,15 +267,15 @@ function downloadJson(data,filename){
 }
 function exportedPayload(kind){
  return {type:kind==='draft'?'feb-ugm-disclosurelab-draft':'feb-ugm-disclosurelab-student-workpaper',
- version:1,caseVersion:CASE_VERSION,recordId:state.recordId,student:state.student,
+ version:2,caseVersion:CASE_VERSION,recordId:state.recordId,student:state.student,
  startedAt:state.startedAt,updatedAt:state.updatedAt,exportedAt:new Date().toISOString(),
  viewedDocs:Array.from(openedDocs),
- responses:Object.fromEntries(work.map(x=>[x.id,clean(state.responses[x.id],9000)]))};
+ responses:getResponses()};
 }
 function makeFile(){
  if(!state)return;collect();
- const remaining=work.filter(x=>!clean(state.responses[x.id],9000)).length;
- if(remaining&&!window.confirm(remaining+' workpaper section(s) are empty. Continue exporting the file?'))return;
+ const remaining=work.reduce((n,t)=>n+t.fields.filter(f=>!String(answerSet(t)[f.id]||'').trim()).length,0);
+ if(remaining&&!window.confirm(remaining+' workpaper field(s) are empty. Continue exporting the file?'))return;
  downloadJson(exportedPayload('submission'),'Session13_'+state.student.niu+'_'+state.recordId+'.json');
  showNotice('Submission JSON downloaded. Upload this file separately through eLOK.',false);
 }
@@ -202,24 +285,22 @@ function makeBackup(){
  showNotice('Draft backup downloaded. Keep it in a secure location.',false);
 }
 async function restoreWork(file){
- if(!file)return;
- if(file.size>300000){showNotice('File exceeds the 300 KB workpaper limit.',true);return;}
+ if(!file)return;if(file.size>300000){showNotice('File exceeds the 300 KB workpaper limit.',true);return;}
  let x;try{x=JSON.parse(await file.text())}catch(_){showNotice('The selected file is not valid JSON.',true);return;}
  const supported=['feb-ugm-disclosurelab-draft','feb-ugm-disclosurelab-student-workpaper'];
- if(!x||!supported.includes(x.type)||x.caseVersion!==CASE_VERSION||
- !x.student||!/^\d{4,12}$/.test(String(x.student.niu||''))||
- typeof x.student.name!=='string'||x.student.name.trim().length<3||x.student.name.length>90||
- !x.responses||typeof x.responses!=='object'||
- !work.every(w=>typeof x.responses[w.id]==='string'&&x.responses[w.id].length<=9000)){
- showNotice('This file is not a compatible Session 13 workpaper.',true);return;
+ const validPerson=x&&x.student&&/^\\d{4,12}$/.test(String(x.student.niu||''))&&typeof x.student.name==='string'&&x.student.name.trim().length>=3&&x.student.name.length<=90;
+ const validOld=x?.version===1&&x.responses&&work.every(t=>typeof x.responses[t.id]==='string'&&x.responses[t.id].length<=9000);
+ const validNew=x?.version===2&&validStructuredResponse(x.responses);
+ if(!x||!supported.includes(x.type)||x.caseVersion!==CASE_VERSION||!validPerson||!(validOld||validNew)){
+  showNotice('This file is not a compatible Session 13 workpaper.',true);return;
  }
  if(state&&!window.confirm('Replace the workpaper currently saved on this device? Export it first if needed.'))return;
  clearTimeout(savePending);
+ const responses=Object.fromEntries(work.map(t=>[t.id,x.version===1?{legacyNotes:x.responses[t.id]}:{...x.responses[t.id]}]));
  state={caseVersion:CASE_VERSION,recordId:clean(x.recordId,95)||'S13-restored',student:{niu:String(x.student.niu),name:x.student.name.trim()},
- startedAt:clean(x.startedAt,50)||new Date().toISOString(),
- updatedAt:new Date().toISOString(),viewedDocs:Array.isArray(x.viewedDocs)?x.viewedDocs.filter(v=>!!documentRegister[v]):[],
- responses:Object.fromEntries(work.map(w=>[w.id,x.responses[w.id]]))};
- for(const x of state.viewedDocs)openedDocs.add(x);
+ startedAt:clean(x.startedAt,50)||new Date().toISOString(),updatedAt:new Date().toISOString(),
+ viewedDocs:Array.isArray(x.viewedDocs)?x.viewedDocs.filter(v=>!!documentRegister[v]):[],responses};
+ for(const docid of state.viewedDocs)openedDocs.add(docid);
  persist();renderIdentity();showNotice('Workpaper restored on this device. Review the student details before export.',false);
 }
 function reset(){if(!window.confirm('Clear the student details and all locally saved responses on this device? Export a copy first if required.'))return;try{localStorage.removeItem(STORAGE)}catch(_){}location.reload()}
@@ -228,7 +309,7 @@ $('#begin').onclick=start;
 $('#backup').onclick=makeBackup;
 $('#restore').onclick=()=>$('#restore-file').click();
 $('#restore-file').onchange=async e=>{await restoreWork(e.target.files?.[0]);e.target.value='';};
-$('#save').onclick=()=>{if(state){document.querySelectorAll('[data-response]').forEach(x=>state.responses[x.dataset.response]=x.value);persist();showNotice('Current responses saved on this device.',false)}};$('#export').onclick=makeFile;$('#reset').onclick=reset;renderNav();state=load();if(state)renderIdentity();
+$('#save').onclick=()=>{if(state){getInputValues();persist();showNotice('Current responses saved on this device.',false)}};$('#export').onclick=makeFile;$('#reset').onclick=reset;renderNav();state=load();if(state)renderIdentity();
 })();
 </script>
 </body>

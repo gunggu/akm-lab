@@ -286,6 +286,8 @@ function exportedPayload(kind){
 }
 function makeFile(){
  if(!state)return;collect();
+ const invalid=work.flatMap(t=>t.fields.filter(f=>f.type==='number'&&String(answerSet(t)[f.id]||'').trim()&&!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(String(answerSet(t)[f.id]).trim())).map(f=>f.label));
+ if(invalid.length){showNotice('Check numeric format in '+invalid.length+' field(s). Enter numbers without currency symbols or separators.',true);return;}
  const remaining=work.reduce((n,t)=>n+t.fields.filter(f=>!String(answerSet(t)[f.id]||'').trim()).length,0);
  if(remaining&&!window.confirm(remaining+' workpaper field(s) are empty. Continue exporting the file?'))return;
  downloadJson(exportedPayload('submission'),'Session13_'+state.student.niu+'_'+state.recordId+'.json');

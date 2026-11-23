@@ -98,21 +98,136 @@ const work=[
 {id:'w6',title:'Investor communications',prompt:'Evaluate the publicly communicated subtotal and describe the reporting treatment and any supporting reconciliations you consider necessary.'},
 {id:'w7',title:'Final memorandum',prompt:'Summarize the most material matters arising from the case and identify the applicable reporting requirements. Distinguish judgments supported by the file from matters needing further information.'}
 ];
+const documentRegister={
+A:{ref:'MIS-FIN-27-041',origin:'Group Finance',kind:'Closing schedule',issued:'19 Feb 2028',classification:'Draft'},
+B:{ref:'MIS-RSK-28-007',origin:'Credit & Facilities',kind:'Correspondence bundle',issued:'02 Feb 2028 / 12 Feb 2028',classification:'Working records'},
+C:{ref:'MIS-LEG-27-018',origin:'Treasury & Legal',kind:'Executed agreement extract',issued:'01 Aug 2027',classification:'Contract record'},
+D:{ref:'MIS-MGT-27-026',origin:'Group Management Accounting',kind:'Operating-line schedule',issued:'31 Dec 2027',classification:'Internal'},
+E:{ref:'MIS-FP-27-013',origin:'Financial Planning',kind:'Interim accounting file',issued:'31 Mar 2027',classification:'Internal'},
+F:{ref:'MIS-IR-28-003',origin:'Investor Relations',kind:'Published performance update',issued:'20 Feb 2028',classification:'Public communication'}
+};
 const $=s=>document.querySelector(s);
-let state=null,active='A',savePending=null;
+let state=null,active='A',savePending=null;const openedDocs=new Set();
 function clean(s,max){return String(s||'').trim().slice(0,max);}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||'null');if(!x||x.caseVersion!==CASE_VERSION||!x.student||!/^\d{4,12}$/.test(x.student.niu))return null;return x}catch(_){return null}}
 function persist(){if(!state)return false;state.updatedAt=new Date().toISOString();try{localStorage.setItem(STORAGE,JSON.stringify(state));$('#save-status').textContent='Saved on this device';return true}catch(_){$('#save-status').textContent='Local storage unavailable. Download a JSON copy.';return false}}
 function showNotice(t,bad){const n=$('#notice');n.textContent=t;n.className=bad?'notice error':'notice';}
-function activateDoc(id){active=id;const d=docs.find(x=>x.id===id);if(!d)return;$('#document-host').innerHTML='<article class="doc" role="tabpanel"><div class="doc-title">'+d.heading+'</div><div class="doc-body"><div class="meta">'+d.meta+'</div>'+d.body+'</div></article>';document.querySelectorAll('[data-doc]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.doc===id)));}
-function renderNav(){docs.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='tab';b.dataset.doc=d.id;b.textContent='Document '+d.id;b.setAttribute('role','tab');b.setAttribute('aria-selected','false');b.onclick=()=>activateDoc(d.id);$('#doc-tabs').append(b);const n=document.createElement('div');n.className='step';n.textContent=d.id+' · '+d.label;$('#evidence-nav').append(n);});activateDoc(active)}
-function renderWork(){const f=$('#work-form');f.replaceChildren();for(const item of work){const section=document.createElement('div');section.className='work';const label=document.createElement('label');label.htmlFor=item.id;label.textContent=item.title;const expl=document.createElement('div');expl.className='sub';expl.textContent=item.prompt;const textarea=document.createElement('textarea');textarea.id=item.id;textarea.dataset.response=item.id;textarea.maxLength=9000;textarea.value=state.responses[item.id]||'';textarea.addEventListener('input',()=>{state.responses[item.id]=textarea.value;updateProgress();$('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550)});section.append(label,expl,textarea);f.append(section)}}
+function activateDoc(id){
+ const d=docs.find(x=>x.id===id),m=documentRegister[id];if(!d||!m)return;
+ active=id;openedDocs.add(id);
+ if(state){state.viewedDocs=Array.from(openedDocs);persist();}
+ const meta='<div class="document-meta-grid"><div><b>Record ID</b>'+m.ref+'</div><div><b>Origin</b>'+m.origin+'</div><div><b>Date</b>'+m.issued+'</div></div>';
+ const header='<div class="document-letterhead"><div><div class="mono">Merapi Industrial Systems · Case file</div><strong>'+m.kind+'</strong></div><span class="document-stamp">'+m.classification+'</span></div>';
+ const footer='<div class="doc-footer"><span>'+m.ref+' · '+d.label+'</span><span>Corporate reporting file · Extract</span></div>';
+ $('#document-host').innerHTML='<article class="doc" role="tabpanel" aria-label="'+d.label+'"><div class="doc-title">'+d.heading+'</div><div class="doc-body">'+header+meta+d.body+footer+'</div></article>';
+ document.querySelectorAll('[data-doc]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.doc===id)));
+ updateViewed();
+}
+function updateViewed(){
+ const n=$('#viewed-status');if(n)n.textContent=openedDocs.size+' of '+docs.length+' documents opened on this device.';
+}
+function renderNav(){
+ docs.forEach(d=>{
+ const b=document.createElement('button');b.type='button';b.className='tab';b.dataset.doc=d.id;
+ b.textContent='Document '+d.id;b.setAttribute('role','tab');b.setAttribute('aria-selected','false');
+ b.onclick=()=>activateDoc(d.id);$('#doc-tabs').append(b);
+ const n=document.createElement('div');n.className='step';n.textContent=d.id+' · '+d.label;
+ $('#evidence-nav').append(n);
+ });
+ activateDoc(active);
+}
+function renderWork(){
+ const f=$('#work-form'),menu=$('#section-menu');f.replaceChildren();menu.replaceChildren();
+ work.forEach((item,i)=>{
+ const section=document.createElement('section');section.className='work';section.id='section-'+item.id;
+ const label=document.createElement('label');label.htmlFor=item.id;label.textContent=(i+1)+'. '+item.title;
+ const expl=document.createElement('div');expl.className='sub';expl.textContent=item.prompt;
+ const textarea=document.createElement('textarea');textarea.id=item.id;textarea.dataset.response=item.id;
+ textarea.maxLength=9000;textarea.value=state.responses[item.id]||'';
+ const footer=document.createElement('div');footer.className='field-footer';
+ const counter=document.createElement('span');
+ const reference=document.createElement('span');reference.textContent='Reference documents by their IDs as needed.';
+ const updateCount=()=>{counter.textContent=textarea.value.length+' characters';};
+ updateCount();footer.append(counter,reference);
+ textarea.addEventListener('input',()=>{
+ state.responses[item.id]=textarea.value;updateCount();updateProgress();
+ $('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550);
+ });
+ section.append(label,expl,textarea,footer);f.append(section);
+ const jump=document.createElement('button');jump.type='button';jump.textContent=String(i+1);
+ jump.setAttribute('aria-label','Go to section '+(i+1)+': '+item.title);
+ jump.onclick=()=>{textarea.focus();if(typeof section.scrollIntoView==='function')section.scrollIntoView({behavior:'smooth',block:'center'});};
+ menu.append(jump);
+ });
+ $('#work-toolbar').classList.remove('hidden');
+ $('#section-count').textContent='Seven workpaper sections';
+}
 function updateProgress(){if(!state)return;let filled=work.filter(x=>clean(state.responses[x.id],9000).length>0).length;$('#progress-bar').style.width=Math.round(100*filled/work.length)+'%';$('#progress-text').textContent=filled+' of '+work.length+' workpaper sections have content.';}
-function renderIdentity(){if(!state)return;$('#identity-form').classList.add('hidden');const box=$('#identity-summary');box.classList.remove('hidden');box.replaceChildren();const p=document.createElement('p');p.textContent=state.student.name+' · '+state.student.niu;const detail=document.createElement('p');detail.className='small';detail.textContent='Case record: '+state.recordId;box.append(p,detail);$('#work-lock').classList.add('hidden');$('#work-form').classList.remove('hidden');$('#save').disabled=false;$('#export').disabled=false;renderWork();updateProgress()}
-function start(){if(state){showNotice('A local workpaper is already open. Clear local work to start another record.',true);return}const niu=clean($('#niu').value,12),name=clean($('#student-name').value,90);if(!/^\d{4,12}$/.test(niu)){showNotice('Enter a numeric NIU with 4 to 12 digits.',true);return}if(name.length<3){showNotice('Enter your full name.',true);return}state={caseVersion:CASE_VERSION,recordId:'S13-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),student:{niu,name},startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),responses:{}};persist();renderIdentity();showNotice('Workpaper opened. Review the documents and record your analysis.',false)}
-function makeFile(){if(!state)return;document.querySelectorAll('[data-response]').forEach(x=>{state.responses[x.dataset.response]=x.value});persist();const payload={type:'feb-ugm-disclosurelab-student-workpaper',version:1,caseVersion:CASE_VERSION,recordId:state.recordId,student:state.student,startedAt:state.startedAt,updatedAt:state.updatedAt,exportedAt:new Date().toISOString(),responses:Object.fromEntries(work.map(x=>[x.id,clean(state.responses[x.id],9000)]))};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Session13_'+state.student.niu+'_'+state.recordId+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showNotice('JSON file prepared for submission through eLOK.',false)}
+function renderIdentity(){
+ if(!state)return;$('#identity-form').classList.add('hidden');
+ const box=$('#identity-summary');box.classList.remove('hidden');box.replaceChildren();
+ const p=document.createElement('p');p.textContent=state.student.name+' · '+state.student.niu;
+ const detail=document.createElement('p');detail.className='small';detail.textContent='Case record: '+state.recordId;
+ box.append(p,detail);
+ for(const id of state.viewedDocs||[])if(documentRegister[id])openedDocs.add(id);
+ $('#work-lock').classList.add('hidden');$('#work-form').classList.remove('hidden');
+ $('#save').disabled=false;$('#export').disabled=false;$('#backup').disabled=false;
+ renderWork();updateProgress();updateViewed();
+}
+function start(){if(state){showNotice('A local workpaper is already open. Clear local work to start another record.',true);return}const niu=clean($('#niu').value,12),name=clean($('#student-name').value,90);if(!/^\d{4,12}$/.test(niu)){showNotice('Enter a numeric NIU with 4 to 12 digits.',true);return}if(name.length<3){showNotice('Enter your full name.',true);return}state={caseVersion:CASE_VERSION,recordId:'S13-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),student:{niu,name},startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),responses:{},viewedDocs:Array.from(openedDocs)};persist();renderIdentity();showNotice('Workpaper opened. Review the documents and record your analysis.',false)}
+function collect(){if(!state)return;document.querySelectorAll('[data-response]').forEach(x=>{state.responses[x.dataset.response]=x.value});persist();}
+function downloadJson(data,filename){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportedPayload(kind){
+ return {type:kind==='draft'?'feb-ugm-disclosurelab-draft':'feb-ugm-disclosurelab-student-workpaper',
+ version:1,caseVersion:CASE_VERSION,recordId:state.recordId,student:state.student,
+ startedAt:state.startedAt,updatedAt:state.updatedAt,exportedAt:new Date().toISOString(),
+ viewedDocs:Array.from(openedDocs),
+ responses:Object.fromEntries(work.map(x=>[x.id,clean(state.responses[x.id],9000)]))};
+}
+function makeFile(){
+ if(!state)return;collect();
+ const remaining=work.filter(x=>!clean(state.responses[x.id],9000)).length;
+ if(remaining&&!window.confirm(remaining+' workpaper section(s) are empty. Continue exporting the file?'))return;
+ downloadJson(exportedPayload('submission'),'Session13_'+state.student.niu+'_'+state.recordId+'.json');
+ showNotice('Submission JSON downloaded. Upload this file separately through eLOK.',false);
+}
+function makeBackup(){
+ if(!state)return;collect();
+ downloadJson(exportedPayload('draft'),'Session13_Draft_'+state.student.niu+'.json');
+ showNotice('Draft backup downloaded. Keep it in a secure location.',false);
+}
+async function restoreWork(file){
+ if(!file)return;
+ if(file.size>300000){showNotice('File exceeds the 300 KB workpaper limit.',true);return;}
+ let x;try{x=JSON.parse(await file.text())}catch(_){showNotice('The selected file is not valid JSON.',true);return;}
+ const supported=['feb-ugm-disclosurelab-draft','feb-ugm-disclosurelab-student-workpaper'];
+ if(!x||!supported.includes(x.type)||x.caseVersion!==CASE_VERSION||
+ !x.student||!/^\d{4,12}$/.test(String(x.student.niu||''))||
+ typeof x.student.name!=='string'||x.student.name.trim().length<3||x.student.name.length>90||
+ !x.responses||typeof x.responses!=='object'||
+ !work.every(w=>typeof x.responses[w.id]==='string'&&x.responses[w.id].length<=9000)){
+ showNotice('This file is not a compatible Session 13 workpaper.',true);return;
+ }
+ if(state&&!window.confirm('Replace the workpaper currently saved on this device? Export it first if needed.'))return;
+ clearTimeout(savePending);
+ state={caseVersion:CASE_VERSION,recordId:clean(x.recordId,95)||'S13-restored',student:{niu:String(x.student.niu),name:x.student.name.trim()},
+ startedAt:clean(x.startedAt,50)||new Date().toISOString(),
+ updatedAt:new Date().toISOString(),viewedDocs:Array.isArray(x.viewedDocs)?x.viewedDocs.filter(v=>!!documentRegister[v]):[],
+ responses:Object.fromEntries(work.map(w=>[w.id,x.responses[w.id]]))};
+ for(const x of state.viewedDocs)openedDocs.add(x);
+ persist();renderIdentity();showNotice('Workpaper restored on this device. Review the student details before export.',false);
+}
 function reset(){if(!window.confirm('Clear the student details and all locally saved responses on this device? Export a copy first if required.'))return;try{localStorage.removeItem(STORAGE)}catch(_){}location.reload()}
-$('#begin').onclick=start;$('#save').onclick=()=>{if(state){document.querySelectorAll('[data-response]').forEach(x=>state.responses[x.dataset.response]=x.value);persist();showNotice('Current responses saved on this device.',false)}};$('#export').onclick=makeFile;$('#reset').onclick=reset;renderNav();state=load();if(state)renderIdentity();
+$('#begin').onclick=start;
+$('#backup').onclick=makeBackup;
+$('#restore').onclick=()=>$('#restore-file').click();
+$('#restore-file').onchange=async e=>{await restoreWork(e.target.files?.[0]);e.target.value='';};
+$('#save').onclick=()=>{if(state){document.querySelectorAll('[data-response]').forEach(x=>state.responses[x.dataset.response]=x.value);persist();showNotice('Current responses saved on this device.',false)}};$('#export').onclick=makeFile;$('#reset').onclick=reset;renderNav();state=load();if(state)renderIdentity();
 })();
 </script>
 </body>

@@ -170,6 +170,18 @@ function renderNav(){
  });
  activateDoc(active);
 }
+function preserveEarlierDrafts(){
+ if(!state||!state.responses)return;
+ const legacy=state.responses;
+ for(const item of [{source:'w6',target:'w1',label:'Previous investor communication response'},{source:'w7',target:'w5',label:'Previous final memorandum'}]){
+  const value=legacy[item.source];
+  if(typeof value!=='string'||!value.trim())continue;
+  const prior=legacy[item.target];
+  const obj=typeof prior==='string'?{legacyNotes:prior}:{...(prior||{})};
+  obj.legacyNotes=[obj.legacyNotes||'',item.label+': '+value].filter(Boolean).join('\n');
+  legacy[item.target]=obj;delete legacy[item.source];
+ }
+}
 function answerSet(task){
  if(!state.responses[task.id]||typeof state.responses[task.id]!=='object'||Array.isArray(state.responses[task.id])){
   const legacy=typeof state.responses[task.id]==='string'?state.responses[task.id]:'';
@@ -188,13 +200,13 @@ function makeField(task,field){
   for(const option of field.options){const o=document.createElement('option');o.value=option;o.textContent=option;ctrl.append(o)}
  }else{
   ctrl=document.createElement('input');ctrl.type='text';ctrl.inputMode='decimal';ctrl.maxLength=24;
-  ctrl.placeholder='Enter amount';ctrl.setAttribute('aria-describedby','numeric-entry-note');
+  ctrl.placeholder='Enter amount';ctrl.setAttribute('aria-label',field.label);
  }
  ctrl.id=task.id+'-'+field.id;ctrl.dataset.worktask=task.id;ctrl.dataset.workfield=field.id;
  ctrl.value=answerSet(task)[field.id]||'';
  const detail=document.createElement('span');detail.className='worksheet-status';
  const update=()=>{
-  if(field.type==='number'&&ctrl.value.trim()&&!/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$/.test(ctrl.value.trim())){detail.textContent='Use a number without currency symbols or separators.';detail.style.color='#a03f39';}
+  if(field.type==='number'&&ctrl.value.trim()&&!/^[+-]?(?:\d+(?:\\.\d*)?|\\.\d+)$/.test(ctrl.value.trim())){detail.textContent='Use a number without currency symbols or separators.';detail.style.color='#a03f39';}
   else{detail.textContent=field.type==='text'?ctrl.value.length+' characters':'';detail.style.color='';}
  };
  ctrl.addEventListener('input',()=>{answerSet(task)[field.id]=ctrl.value;update();updateProgress();$('#save-status').textContent='Unsaved changes';clearTimeout(savePending);savePending=setTimeout(persist,550)});
@@ -247,7 +259,7 @@ function validStructuredResponse(q){
  })});
 }
 function renderIdentity(){
- if(!state)return;$('#identity-form').classList.add('hidden');
+ if(!state)return;preserveEarlierDrafts();$('#identity-form').classList.add('hidden');
  const box=$('#identity-summary');box.classList.remove('hidden');box.replaceChildren();
  const p=document.createElement('p');p.textContent=state.student.name+' · '+state.student.niu;
  const detail=document.createElement('p');detail.className='small';detail.textContent='Case record: '+state.recordId;
@@ -288,8 +300,8 @@ async function restoreWork(file){
  if(!file)return;if(file.size>300000){showNotice('File exceeds the 300 KB workpaper limit.',true);return;}
  let x;try{x=JSON.parse(await file.text())}catch(_){showNotice('The selected file is not valid JSON.',true);return;}
  const supported=['feb-ugm-disclosurelab-draft','feb-ugm-disclosurelab-student-workpaper'];
- const validPerson=x&&x.student&&/^\\d{4,12}$/.test(String(x.student.niu||''))&&typeof x.student.name==='string'&&x.student.name.trim().length>=3&&x.student.name.length<=90;
- const validOld=x?.version===1&&x.responses&&work.every(t=>typeof x.responses[t.id]==='string'&&x.responses[t.id].length<=9000);
+ const validPerson=x&&x.student&&/^\d{4,12}$/.test(String(x.student.niu||''))&&typeof x.student.name==='string'&&x.student.name.trim().length>=3&&x.student.name.length<=90;
+ const validOld=x?.version===1&&x.responses&&['w1','w2','w3','w4','w5','w6','w7'].every(id=>typeof x.responses[id]==='string'&&x.responses[id].length<=9000);
  const validNew=x?.version===2&&validStructuredResponse(x.responses);
  if(!x||!supported.includes(x.type)||x.caseVersion!==CASE_VERSION||!validPerson||!(validOld||validNew)){
   showNotice('This file is not a compatible Session 13 workpaper.',true);return;
@@ -297,6 +309,10 @@ async function restoreWork(file){
  if(state&&!window.confirm('Replace the workpaper currently saved on this device? Export it first if needed.'))return;
  clearTimeout(savePending);
  const responses=Object.fromEntries(work.map(t=>[t.id,x.version===1?{legacyNotes:x.responses[t.id]}:{...x.responses[t.id]}]));
+ if(x.version===1){
+  if(x.responses.w6.trim())responses.w1.legacyNotes+='\nPrevious investor communication response: '+x.responses.w6;
+  if(x.responses.w7.trim())responses.w5.legacyNotes+='\nPrevious final memorandum: '+x.responses.w7;
+ }
  state={caseVersion:CASE_VERSION,recordId:clean(x.recordId,95)||'S13-restored',student:{niu:String(x.student.niu),name:x.student.name.trim()},
  startedAt:clean(x.startedAt,50)||new Date().toISOString(),updatedAt:new Date().toISOString(),
  viewedDocs:Array.isArray(x.viewedDocs)?x.viewedDocs.filter(v=>!!documentRegister[v]):[],responses};

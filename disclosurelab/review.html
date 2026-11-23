@@ -19,7 +19,7 @@ function safe(s,max){return String(s==null?'':s).slice(0,max)}
 function show(t,isBad){$('#status').textContent=t;$('#status').className=isBad?'status error':'status'}
 function valid(o){
  if(!o||o.type!=='feb-ugm-disclosurelab-student-workpaper'||![1,2].includes(o.version)||o.caseVersion!=='s13-merapi-2027-v1')return false;
- if(!o.student||!/^\\d{4,12}$/.test(String(o.student.niu||''))||typeof o.student.name!=='string'||o.student.name.length<3||o.student.name.length>90||typeof o.recordId!=='string'||o.recordId.length>99)return false;
+ if(!o.student||!/^\d{4,12}$/.test(String(o.student.niu||''))||typeof o.student.name!=='string'||o.student.name.length<3||o.student.name.length>90||typeof o.recordId!=='string'||o.recordId.length>99)return false;
  if(!o.responses||typeof o.responses!=='object')return false;
  if(o.version===1)return Object.keys(legacyTitles).every(k=>typeof o.responses[k]==='string'&&o.responses[k].length<=9000);
  return Object.keys(titles).every(k=>o.responses[k]&&typeof o.responses[k]==='object'&&Object.entries(o.responses[k]).every(([key,v])=>Object.hasOwn(labels[k],key)||key==='legacyNotes')&&Object.values(o.responses[k]).every(v=>typeof v==='string'&&v.length<=9000));
